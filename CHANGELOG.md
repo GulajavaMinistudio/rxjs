@@ -1,5 +1,16 @@
-<a name="5.3.2"></a>
-## [5.3.2](https://github.com/ReactiveX/RxJS/compare/5.3.1...v5.3.2) (2017-05-09)
+<a name="5.4.0"></a>
+# [5.4.0](https://github.com/ReactiveX/RxJS/) (2017-05-09)
+
+
+### Features
+
+* **shareReplay:** adds `shareReplay` variant of `publishReplay` ([#2443](https://github.com/ReactiveX/RxJS/issues/2443)) ([5a2266a](https://github.com/ReactiveX/RxJS/commit/5a2266a))
+* **skipLast:** add skipLast operator  ([#2316](https://github.com/ReactiveX/RxJS/issues/2316)) ([4ffbbe5](https://github.com/ReactiveX/RxJS/commit/4ffbbe5)), closes [#1404](https://github.com/ReactiveX/RxJS/issues/1404)
+* **TypeScript:** fromPromise accepts PromiseLike object ([#2505](https://github.com/ReactiveX/RxJS/issues/2505)) ([ade1fd5](https://github.com/ReactiveX/RxJS/commit/ade1fd5))
+
+
+<a name="5.3.3"></a>
+## [5.3.3](https://github.com/ReactiveX/RxJS/compare/5.3.1...5.3.3) (2017-05-09)
 
 
 ### Bug Fixes
@@ -8,6 +19,8 @@
 * **race:** allow TypeScript support for array of observables other than rest param ([#2548](https://github.com/ReactiveX/RxJS/issues/2548)) ([ace553c](https://github.com/ReactiveX/RxJS/commit/ace553c))
 * **Subscriber:** do not call complete with undefined value param ([#2559](https://github.com/ReactiveX/RxJS/issues/2559)) ([3d63de2](https://github.com/ReactiveX/RxJS/commit/3d63de2))
 
+
+**(NOTE: 5.3.2 was a broken release and was removed)**
 
 
 <a name="5.3.1"></a>
