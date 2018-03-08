@@ -3,6 +3,7 @@
   "version": "6.0.0-alpha.3",
   "description": "Reactive Extensions for modern JavaScript",
   "main": "index.js",
+  "sideEffects": false,
   "config": {
     "commitizen": {
       "path": "cz-conventional-changelog"
@@ -96,7 +97,7 @@
     "compile_dist_cjs": "tsc -p ./tsconfig/tsconfig.cjs.json",
     "compile_dist_esm5": "tsc -p ./tsconfig/tsconfig.esm5.json",
     "compile_dist_esm2015": "tsc -p ./tsconfig/tsconfig.esm2015.json",
-    "compile_dist_esm2015_for_docs": "tsc ./dist/src/Rx.ts ./dist/src/add/observable/of.ts ./dist/src/MiscJSDoc.ts -m es2015   --sourceMap --outDir ./dist/es6 --target es2015 -d --diagnostics --pretty --noImplicitAny --noImplicitReturns --noImplicitThis --suppressImplicitAnyIndexErrors --moduleResolution node",
+    "compile_dist_esm2015_for_docs": "tsc ./dist/src/internal/Rx.ts ./dist/src/add/observable/of.ts ./dist/src/MiscJSDoc.ts -m es2015   --sourceMap --outDir ./dist/es6 --target es2015 -d --diagnostics --pretty --noImplicitAny --noImplicitReturns --noImplicitThis --suppressImplicitAnyIndexErrors --moduleResolution node",
     "compile_dist_esm5_for_rollup": "tsc -p ./tsconfig/tsconfig.esm5.rollup.json",
     "copy_sources": "mkdirp dist && shx cp -r ./src/ ./dist/src",
     "decision_tree_widget": "cd doc/decision-tree-widget && npm run build && cd ../..",
@@ -114,7 +115,7 @@
     "test": "cross-env TS_NODE_FAST=true mocha --compilers ts:ts-node/register --opts spec/support/coverage.opts \"spec/**/*-spec.ts\"",
     "test:cover": "cross-env TS_NODE_FAST=true nyc npm test",
     "test:circular": "dependency-cruise --validate .dependency-cruiser.json -x \"^node_modules\" src",
-    "tests2png": "tsc && mkdirp tmp/docs/img && mkdirp spec-js/support && shx cp spec/support/*.opts spec-js/support/ && mocha --opts spec/support/tests2png.opts spec-js",
+    "tests2png": "mkdirp tmp/docs/img && cross-env TS_NODE_FAST=true mocha --compilers ts:ts-node/register --opts spec/support/tests2png.opts \"spec/**/*-spec.ts\"",
     "watch": "watch \"echo triggering build && npm run test && echo build completed\" src -d -u -w=15"
   },
   "repository": {

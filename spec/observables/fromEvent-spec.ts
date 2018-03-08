@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { expectObservable } from '../helpers/marble-testing';
-import { fromEvent, never, timer } from '../../src';
+import { fromEvent, NEVER, timer } from '../../src';
 import { TestScheduler } from '../../src/testing';
 
 declare function asDiagram(arg: string): Function;
@@ -15,7 +15,7 @@ describe('fromEvent', () => {
         timer(50, 20, rxTestScheduler)
           .mapTo('ev')
           .take(2)
-          .concat(never())
+          .concat(NEVER)
           .subscribe(listener);
       },
       removeEventListener: () => void 0,
@@ -132,16 +132,17 @@ describe('fromEvent', () => {
     });
   });
 
-  it('should pass through options to addEventListener', () => {
-    let actualOptions;
+  it('should pass through options to addEventListener and removeEventListener', () => {
+    let onOptions;
+    let offOptions;
     const expectedOptions = { capture: true, passive: true };
 
     const obj = {
       addEventListener: (a: string, b: EventListenerOrEventListenerObject, c?: any) => {
-        actualOptions = c;
+        onOptions = c;
       },
       removeEventListener: (a: string, b: EventListenerOrEventListenerObject, c?: any) => {
-        //noop
+        offOptions = c;
       }
     };
 
@@ -152,7 +153,8 @@ describe('fromEvent', () => {
 
     subscription.unsubscribe();
 
-    expect(actualOptions).to.equal(expectedOptions);
+    expect(onOptions).to.equal(expectedOptions);
+    expect(offOptions).to.equal(expectedOptions);
   });
 
   it('should pass through events that occur', (done: MochaDone) => {

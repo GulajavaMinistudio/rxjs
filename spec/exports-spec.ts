@@ -23,7 +23,7 @@ import { throwError } from '../src/internal/observable/throwError';
 import { timer } from '../src/internal/observable/timer';
 import { using } from '../src/internal/observable/using';
 import { zip } from '../src/internal/observable/zip';
-import * as Rx from '../src/Rx';
+import * as Rx from '../src/internal/Rx';
 
 describe('exports', () => {
   it('should have rxjs/observable/bindCallback', () => {
@@ -80,10 +80,6 @@ describe('exports', () => {
 
   it('should have rxjs/observable/merge', () => {
     expect(merge).to.equal(Rx.Observable.merge);
-  });
-
-  it('should have rxjs/observable/never', () => {
-    expect(never).to.equal(Rx.Observable.never);
   });
 
   it('should have rxjs/observable/of', () => {
