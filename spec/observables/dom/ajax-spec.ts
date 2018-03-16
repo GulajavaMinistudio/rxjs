@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import * as Rx from '../../../src/internal/Rx';
-import { root } from '../../../src/internal/util/root';
+import * as Rx from 'rxjs/Rx';
+import { root } from 'rxjs/util/root';
 
 declare const global: any;
 
@@ -50,7 +50,8 @@ describe('Observable.ajax', () => {
 
     const obj: Rx.AjaxRequest = {
       url: '/',
-      method: ''
+      method: '',
+      crossDomain: false,
     };
 
     Rx.Observable.ajax(obj).subscribe();
@@ -132,7 +133,21 @@ describe('Observable.ajax', () => {
       'Content-Type': 'kenny/loggins',
       'Fly-Into-The': 'Dangah Zone!',
       'Take-A-Ride-Into-The': 'Danger ZoooOoone!',
-      'X-Requested-With': 'XMLHttpRequest'
+    });
+  });
+
+  it('should set the X-Requested-With if crossDomain is false', () => {
+    Rx.Observable.ajax({
+      url: '/test/monkey',
+      method: 'GET',
+      crossDomain: false,
+    })
+    .subscribe();
+
+    const request = MockXMLHttpRequest.mostRecent;
+
+    expect(request.requestHeaders).to.deep.equal({
+      'X-Requested-With': 'XMLHttpRequest',
     });
   });
 
@@ -262,8 +277,9 @@ describe('Observable.ajax', () => {
     expect(error.status).to.equal(404);
   });
 
-  it('should fail on 404', () => {
-    let error;
+  it('should succeed on 300', () => {
+    let result;
+    let complete = false;
     const obj = {
       url: '/flibbertyJibbet',
       normalizeError: (e: any, xhr: any, type: any) => {
@@ -273,13 +289,12 @@ describe('Observable.ajax', () => {
       method: ''
     };
 
-    Rx.Observable.ajax(obj).subscribe(x => {
-      throw 'should not next';
-    }, (err: any) => {
-      error = err;
-    }, () => {
-      throw 'should not complete';
-    });
+    Rx.Observable.ajax(obj)
+      .subscribe((x: any) => {
+        result = x;
+      }, null, () => {
+        complete = true;
+      });
 
     expect(MockXMLHttpRequest.mostRecent.url).to.equal('/flibbertyJibbet');
 
@@ -289,9 +304,9 @@ describe('Observable.ajax', () => {
       'responseText': 'Wee! I am text!'
     });
 
-    expect(error instanceof Rx.AjaxError).to.be.true;
-    expect(error.message).to.equal('ajax error 300');
-    expect(error.status).to.equal(300);
+    expect(result.xhr).exist;
+    expect(result.response).to.deep.equal('Wee! I am text!');
+    expect(complete).to.be.true;
   });
 
   it('should succeed no settings', () => {
@@ -433,7 +448,6 @@ describe('Observable.ajax', () => {
       expect(MockXMLHttpRequest.mostRecent.url).to.equal('/flibbertyJibbet');
       expect(MockXMLHttpRequest.mostRecent.data).to.deep.equal(body);
       expect(MockXMLHttpRequest.mostRecent.requestHeaders).to.deep.equal({
-        'X-Requested-With': 'XMLHttpRequest',
       });
     });
 
@@ -624,7 +638,6 @@ describe('Observable.ajax', () => {
       expect(request.method).to.equal('POST');
       expect(request.url).to.equal('/flibbertyJibbet');
       expect(request.requestHeaders).to.deep.equal({
-        'X-Requested-With': 'XMLHttpRequest',
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
       });
 
@@ -657,7 +670,6 @@ describe('Observable.ajax', () => {
       expect(request.method).to.equal('POST');
       expect(request.url).to.equal('/flibbertyJibbet');
       expect(request.requestHeaders).to.deep.equal({
-        'X-Requested-With': 'XMLHttpRequest',
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
       });
 
@@ -692,7 +704,6 @@ describe('Observable.ajax', () => {
       expect(request.method).to.equal('POST');
       expect(request.url).to.equal('/flibbertyJibbet');
       expect(request.requestHeaders).to.deep.equal({
-        'X-Requested-With': 'XMLHttpRequest',
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
       });
 

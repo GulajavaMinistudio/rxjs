@@ -23,7 +23,7 @@ export interface AjaxRequest {
   responseType?: string;
 }
 
-function getCORSRequest(this: AjaxRequest): XMLHttpRequest {
+function getCORSRequest(): XMLHttpRequest {
   if (root.XMLHttpRequest) {
     return new root.XMLHttpRequest();
   } else if (!!root.XDomainRequest) {
@@ -155,9 +155,9 @@ export class AjaxObservable<T> extends Observable<T> {
     const request: AjaxRequest = {
       async: true,
       createXHR: function(this: AjaxRequest) {
-        return this.crossDomain ? getCORSRequest.call(this) : getXMLHttpRequest();
+        return this.crossDomain ? getCORSRequest() : getXMLHttpRequest();
       },
-      crossDomain: false,
+      crossDomain: true,
       withCredentials: false,
       headers: {},
       method: 'GET',
@@ -365,7 +365,8 @@ export class AjaxSubscriber<T> extends Subscriber<Event> {
           status = response ? 200 : 0;
         }
 
-        if (200 <= status && status < 300) {
+        // 4xx and 5xx should error (https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html)
+        if (status < 400) {
           if (progressSubscriber) {
             progressSubscriber.complete();
           }

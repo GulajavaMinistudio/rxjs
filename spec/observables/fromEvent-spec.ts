@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { expectObservable } from '../helpers/marble-testing';
-import { fromEvent, NEVER, timer } from '../../src';
-import { TestScheduler } from '../../src/testing';
+import { fromEvent, NEVER, timer } from 'rxjs';
+import { TestScheduler } from 'rxjs/testing';
 
 declare function asDiagram(arg: string): Function;
 declare const rxTestScheduler: TestScheduler;
@@ -124,7 +124,7 @@ describe('fromEvent', () => {
     };
 
     fromEvent(obj as any, 'click').subscribe({
-      error(err) {
+      error(err: any) {
         expect(err).to.exist
           .and.be.instanceof(Error)
           .and.have.property('message', 'Invalid event target');

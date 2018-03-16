@@ -1,9 +1,10 @@
 import { expect } from 'chai';
 import * as sinon from 'sinon';
-import * as Rx from '../src/internal/Rx';
+import * as Rx from 'rxjs/Rx';
 import { Observer, TeardownLogic } from '../src/internal/types';
 import { cold, expectObservable, expectSubscriptions } from './helpers/marble-testing';
 import { map } from '../src/internal/operators/map';
+import * as HostReportErrorModule from '../src/internal/util/hostReportError';
 //tslint:disable-next-line
 require('./helpers/test-helper');
 
@@ -529,6 +530,21 @@ describe('Observable', () => {
           complete() { completeCalled = true; }
         });
 
+      });
+    });
+
+    describe('if config.useDeprecatedSynchronousThrowing === true', () => {
+      beforeEach(() => {
+        Rx.config.useDeprecatedSynchronousErrorHandling = true;
+      });
+
+      it('should throw synchronously', () => {
+        expect(() => Observable.throwError(new Error()).subscribe())
+          .to.throw();
+      });
+
+      afterEach(() => {
+        Rx.config.useDeprecatedSynchronousErrorHandling = false;
       });
     });
   });
