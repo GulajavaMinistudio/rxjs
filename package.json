@@ -1,6 +1,6 @@
 {
   "name": "@reactivex/rxjs",
-  "version": "6.0.0-beta.0",
+  "version": "6.0.0-beta.1",
   "description": "Reactive Extensions for modern JavaScript",
   "main": "index.js",
   "sideEffects": false,
@@ -189,7 +189,7 @@
     "tslib": "^1.9.0"
   },
   "devDependencies": {
-    "@angular-devkit/build-optimizer": "0.0.24",
+    "@angular-devkit/build-optimizer": "0.4.6",
     "@types/chai": "4.1.2",
     "@types/lodash": "4.14.102",
     "@types/mocha": "2.2.48",
