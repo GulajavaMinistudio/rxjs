@@ -20,9 +20,8 @@ export class Observable<T> implements Subscribable<T> {
   /** @internal */
   public _isScalar: boolean = false;
 
-  /** @internal */
   protected source: Observable<any>;
-  /** @internal */
+
   protected operator: Operator<any, T>;
 
   /**
@@ -47,6 +46,7 @@ export class Observable<T> implements Subscribable<T> {
    * @method create
    * @param {Function} subscribe? the subscriber function to be passed to the Observable constructor
    * @return {Observable} a new cold observable
+   * @nocollapse
    */
   static create: Function = <T>(subscribe?: (subscriber: Subscriber<T>) => TeardownLogic) => {
     return new Observable<T>(subscribe);
@@ -248,11 +248,13 @@ export class Observable<T> implements Subscribable<T> {
 
   /** @internal */
   protected _subscribe(subscriber: Subscriber<any>): TeardownLogic {
-    return this.source.subscribe(subscriber);
+    const { source } = this;
+    return source && source.subscribe(subscriber);
   }
 
   // TODO(benlesh): determine if this is still necessary
   // `if` and `throw` are special snow flakes, the compiler sees them as reserved words
+  /** @nocollapse */
   static if: typeof iif;
 
   /**
