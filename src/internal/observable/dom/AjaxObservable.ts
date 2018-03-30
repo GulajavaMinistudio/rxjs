@@ -4,7 +4,7 @@ import { errorObject } from '../../util/errorObject';
 import { Observable } from '../../Observable';
 import { Subscriber } from '../../Subscriber';
 import { TeardownLogic } from '../../types';
-import { map } from '../../../internal/operators/map';
+import { map } from '../../operators/map';
 
 export interface AjaxRequest {
   url?: string;
@@ -292,7 +292,7 @@ export class AjaxSubscriber<T> extends Subscriber<Event> {
 
     switch (contentType) {
       case 'application/x-www-form-urlencoded':
-        return Object.keys(body).map(key => `${encodeURI(key)}=${encodeURI(body[key])}`).join('&');
+        return Object.keys(body).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`).join('&');
       case 'application/json':
         return JSON.stringify(body);
       default:
