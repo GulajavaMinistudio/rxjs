@@ -1,3 +1,30 @@
+<a name="6.0.0-tactical-rc.1"></a>
+# [6.0.0-tactical-rc.1](https://github.com/ReactiveX/RxJS/compare/6.0.0-rc.0...6.0.0-tactical-rc.1) (2018-04-07)
+
+Why "tactical"? Because I *TOTALLY MEANT* to ruin the release names by publishing an amazingly funny April Fool's joke about smooshMap. So this was "tactical". Super tactical. So very tactical.
+
+### Bug Fixes
+
+* **closure-compiler:** adds nocollapse to static members ([#3519](https://github.com/ReactiveX/RxJS/issues/3519)) ([8758a5d](https://github.com/ReactiveX/RxJS/commit/8758a5d))
+* **closure-compiler:** remove internal flag from _isScalar ([#3520](https://github.com/ReactiveX/RxJS/issues/3520)) ([b3a657d](https://github.com/ReactiveX/RxJS/commit/b3a657d))
+* **closure-compiler:** remove top level throws ([#3518](https://github.com/ReactiveX/RxJS/issues/3518)) ([b069473](https://github.com/ReactiveX/RxJS/commit/b069473))
+* **closure-compiler:** removes bad \[@params](https://github.com/params) comments that caused issues ([#3521](https://github.com/ReactiveX/RxJS/issues/3521)) ([09c874c](https://github.com/ReactiveX/RxJS/commit/09c874c))
+* **compat:** deprecate Observable.if/throw ([#3527](https://github.com/ReactiveX/RxJS/issues/3527)) ([3116275](https://github.com/ReactiveX/RxJS/commit/3116275))
+* **compat:** export TeardownLogic ([#3532](https://github.com/ReactiveX/RxJS/issues/3532)) ([0c76e64](https://github.com/ReactiveX/RxJS/commit/0c76e64)), closes [#3531](https://github.com/ReactiveX/RxJS/issues/3531)
+* **compat:** remove observable/scalar deep import as it wasn't previously available ([4566001](https://github.com/ReactiveX/RxJS/commit/4566001))
+* **Scheduler:** export but deprecate ([#3522](https://github.com/ReactiveX/RxJS/issues/3522)) ([a3e1fb8](https://github.com/ReactiveX/RxJS/commit/a3e1fb8))
+* **skipUntil:** properly manages notifier subscription ([889f84a](https://github.com/ReactiveX/RxJS/commit/889f84a)), closes [#1886](https://github.com/ReactiveX/RxJS/issues/1886)
+* fix type mismatch in NodeStyleEventEmitter ([#3530](https://github.com/ReactiveX/RxJS/issues/3530)) ([3f51ddd](https://github.com/ReactiveX/RxJS/commit/3f51ddd))
+* **sourcemaps:** fix mappings for source maps so they will work ([#3523](https://github.com/ReactiveX/RxJS/issues/3523)) ([32e7f75](https://github.com/ReactiveX/RxJS/commit/32e7f75)), closes [#3479](https://github.com/ReactiveX/RxJS/issues/3479)
+
+
+### Features
+
+* **compat:** add Observable extension classes with static create() ([ecd7f68](https://github.com/ReactiveX/RxJS/commit/ecd7f68))
+* **compat:** add rxjs/interfaces exports ([ba5c266](https://github.com/ReactiveX/RxJS/commit/ba5c266))
+
+
+
 <a name="6.0.0-rc.0"></a>
 # [6.0.0-rc.0](https://github.com/ReactiveX/RxJS/compare/6.0.0-beta.4...6.0.0-rc.0) (2018-03-31)
 
@@ -13,7 +40,7 @@
 
 ### Features
 
-* **takeUntil:** no longer subscribes to sourec if notifier synchronously emits ([#3504](https://github.com/ReactiveX/RxJS/issues/3504)) ([7b8a3e3](https://github.com/ReactiveX/RxJS/commit/7b8a3e3)), closes [#2189](https://github.com/ReactiveX/RxJS/issues/2189)
+* **takeUntil:** no longer subscribes to source if notifier synchronously emits ([#3504](https://github.com/ReactiveX/RxJS/issues/3504)) ([7b8a3e3](https://github.com/ReactiveX/RxJS/commit/7b8a3e3)), closes [#2189](https://github.com/ReactiveX/RxJS/issues/2189)
 
 
 ### Performance Improvements
