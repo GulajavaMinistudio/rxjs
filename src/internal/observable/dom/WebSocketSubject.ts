@@ -30,7 +30,7 @@ export interface WebSocketSubjectConfig<T> {
    */
   openObserver?: NextObserver<Event>;
   /**
-   * An Observer than watches when close events occur on the underlying websocket
+   * An Observer than watches when close events occur on the underlying webSocket
    */
   closeObserver?: NextObserver<CloseEvent>;
   /**
@@ -101,6 +101,7 @@ export class WebSocketSubject<T> extends AnonymousSubject<T> {
   lift<R>(operator: Operator<T, R>): WebSocketSubject<R> {
     const sock = new WebSocketSubject<R>(this._config as WebSocketSubjectConfig<any>, <any> this.destination);
     sock.operator = operator;
+    sock.source = this;
     return sock;
   }
 
