@@ -9,9 +9,16 @@
 
 [![Selenium Test Status](https://saucelabs.com/browser-matrix/rxjs5.svg)](https://saucelabs.com/u/rxjs5)
 
-# RxJS 6 Beta
+# RxJS 6 Stable
 
-## FOR V 5.X PLEASE GO TO [STABLE BRANCH](https://github.com/ReactiveX/rxjs/tree/stable)
+### MIGRATION AND RELEASE INFORMATION:
+
+Find out how up update to v6, **automatically update your TypeScript code**, and more!
+
+- [Current home is a Google Doc](https://docs.google.com/document/d/12nlLt71VLKb-z3YaSGzUfx6mJbc34nsMXtByPUN35cg/edit)
+- [Future home is MIGRATION.md](./MIGRATION.md)
+
+### FOR V 5.X PLEASE GO TO [THE 5.0 BRANCH](https://github.com/ReactiveX/rxjs/tree/stable)
 
 Reactive Extensions Library for JavaScript. This is a rewrite of [Reactive-Extensions/RxJS](https://github.com/Reactive-Extensions/RxJS) and is the latest production-ready version of RxJS. This rewrite is meant to have better performance, better modularity, better debuggable call stacks, while staying mostly backwards compatible, with some breaking changes that reduce the API surface.
 
@@ -26,7 +33,7 @@ Reactive Extensions Library for JavaScript. This is a rewrite of [Reactive-Exten
 ## Versions In This Repository
 
 - [master](https://github.com/ReactiveX/rxjs/commits/master) - This all of the current, unreleased work, which is against v6 of RxJS right now
-- [stable](https://github.com/ReactiveX/rxjs/commits/stable) - This is the branch for the latest version you'd get if you do `npm install rxjs`, (currently this is 5.5)
+- [stable](https://github.com/ReactiveX/rxjs/commits/stable) - This is the branch for the latest version you'd get if you do `npm install rxjs`
 
 ## Important
 
@@ -37,7 +44,7 @@ By contributing or commenting on issues in this repository, whether you've read 
 ### ES6 via npm
 
 ```sh
-npm install rxjs@beta
+npm install rxjs
 ```
 
 To import only what you need by patching (this is useful for size-sensitive bundling):
@@ -58,7 +65,7 @@ Alternatively, you can use the built-in `pipe` method on Observables. See [pipea
 To install this library for CommonJS (CJS) usage, use the following command:
 
 ```sh
-npm install rxjs@beta
+npm install rxjs
 ```
 
 (Note: destructuring available in Node 8+)
@@ -76,7 +83,7 @@ range(1, 200)
 
 For CDN, you can use [unpkg](https://unpkg.com/):
 
-https://unpkg.com/rxjs@rc/bundles/rxjs.umd.min.js
+https://unpkg.com/rxjs/bundles/rxjs.umd.min.js
 
 The global namespace for rxjs is `rxjs`:
 
