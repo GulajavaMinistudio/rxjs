@@ -122,19 +122,22 @@ export function fromEvent<T>(target: FromEventTarget<T>, eventName: string, opti
  * installed and removed in each of elements.
  *
  *
- * @example <caption>Emits clicks happening on the DOM document</caption>
- * var clicks = fromEvent(document, 'click');
+ * ## Examples
+ * ### Emits clicks happening on the DOM document
+ * ```javascript
+ * const clicks = fromEvent(document, 'click');
  * clicks.subscribe(x => console.log(x));
  *
  * // Results in:
  * // MouseEvent object logged to console every time a click
  * // occurs on the document.
+ * ```
  *
- *
- * @example <caption>Use addEventListener with capture option</caption>
- * var clicksInDocument = fromEvent(document, 'click', true); // note optional configuration parameter
- *                                                                          // which will be passed to addEventListener
- * var clicksInDiv = fromEvent(someDivInDocument, 'click');
+ * ### Use addEventListener with capture option
+ * ```javascript
+ * const clicksInDocument = fromEvent(document, 'click', true); // note optional configuration parameter
+ *                                                              // which will be passed to addEventListener
+ * const clicksInDiv = fromEvent(someDivInDocument, 'click');
  *
  * clicksInDocument.subscribe(() => console.log('document'));
  * clicksInDiv.subscribe(() => console.log('div'));
@@ -145,6 +148,7 @@ export function fromEvent<T>(target: FromEventTarget<T>, eventName: string, opti
  * // Since we specified optional `capture` option, document
  * // will catch event when it goes DOWN DOM tree, so console
  * // will log "document" and then "div".
+ * ```
  *
  * @see {@link bindCallback}
  * @see {@link bindNodeCallback}
