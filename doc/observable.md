@@ -9,8 +9,10 @@ Observables are lazy Push collections of multiple values. They fill the missing 
 
 **Example.** The following is an Observable that pushes the values `1`, `2`, `3` immediately (synchronously) when subscribed, and the value `4` after one second has passed since the subscribe call, then completes:
 
-```js
-var observable = Rx.Observable.create(function (observer) {
+```ts
+import { Observable } from 'rxjs';
+
+const observable = Observable.create(function (observer) {
   observer.next(1);
   observer.next(2);
   observer.next(3);
@@ -23,8 +25,10 @@ var observable = Rx.Observable.create(function (observer) {
 
 To invoke the Observable and see these values, we need to *subscribe* to it:
 
-```js
-var observable = Rx.Observable.create(function (observer) {
+```ts
+import { Observable } from 'rxjs';
+
+const observable = Observable.create(function (observer) {
   observer.next(1);
   observer.next(2);
   observer.next(3);
@@ -90,15 +94,15 @@ Contrary to popular claims, Observables are not like EventEmitters nor are they 
 
 Consider the following:
 
-```js
+```ts
 function foo() {
   console.log('Hello');
   return 42;
 }
 
-var x = foo.call(); // same as foo()
+const x = foo.call(); // same as foo()
 console.log(x);
-var y = foo.call(); // same as foo()
+const y = foo.call(); // same as foo()
 console.log(y);
 ```
 
@@ -113,8 +117,10 @@ We expect to see as output:
 
 You can write the same behavior above, but with Observables:
 
-```js
-var foo = Rx.Observable.create(function (observer) {
+```ts
+import { Observable } from 'rxjs';
+
+const foo = Observable.create(function (observer) {
   console.log('Hello');
   observer.next(42);
 });
@@ -142,7 +148,6 @@ This happens because both functions and Observables are lazy computations. If yo
 
 Some people claim that Observables are asynchronous. That is not true. If you surround a function call with logs, like this:
 
-<!-- skip-example -->
 ```js
 console.log('before');
 console.log(foo.call());
@@ -160,7 +165,6 @@ You will see the output:
 
 And this is the same behavior with Observables:
 
-<!-- skip-example -->
 ```js
 console.log('before');
 foo.subscribe(function (x) {
@@ -194,8 +198,10 @@ function foo() {
 
 Functions can only return one value. Observables, however, can do this:
 
-```js
-var foo = Rx.Observable.create(function (observer) {
+```ts
+import { Observable } from 'rxjs';
+
+const foo = Observable.create(function (observer) {
   console.log('Hello');
   observer.next(42);
   observer.next(100); // "return" another value
@@ -222,8 +228,10 @@ With synchronous output:
 
 But you can also "return" values asynchronously:
 
-```js
-var foo = Rx.Observable.create(function (observer) {
+```ts
+import { Observable } from 'rxjs';
+
+const foo = Observable.create(function (observer) {
   console.log('Hello');
   observer.next(42);
   observer.next(100);
@@ -259,7 +267,7 @@ Conclusion:
 
 ## Anatomy of an Observable
 
-Observables are **created** using `Rx.Observable.create` or a creation operator, are **subscribed** to with an Observer, **execute** to deliver `next` / `error` / `complete` notifications to the Observer, and their execution may be **disposed**. These four aspects are all encoded in an Observable instance, but some of these aspects are related to other types, like Observer and Subscription.
+Observables are **created** using `Observable.create` or a creation operator, are **subscribed** to with an Observer, **execute** to deliver `next` / `error` / `complete` notifications to the Observer, and their execution may be **disposed**. These four aspects are all encoded in an Observable instance, but some of these aspects are related to other types, like Observer and Subscription.
 
 Core Observable concerns:
 - **Creating** Observables
@@ -269,13 +277,15 @@ Core Observable concerns:
 
 ### Creating Observables
 
-`Rx.Observable.create` is an alias for the `Observable` constructor, and it takes one argument: the `subscribe` function.
+`Observable.create` is an alias for the `Observable` constructor, and it takes one argument: the `subscribe` function.
 
 The following example creates an Observable to emit the string `'hi'` every second to an Observer.
 
-```js
-var observable = Rx.Observable.create(function subscribe(observer) {
-  var id = setInterval(() => {
+```ts
+import { Observable } from 'rxjs';
+
+const observable = Observable.create(function subscribe(observer) {
+  const id = setInterval(() => {
     observer.next('hi')
   }, 1000);
 });
@@ -289,8 +299,7 @@ In the example above, the `subscribe` function is the most important piece to de
 
 The Observable `observable` in the example can be *subscribed* to, like this:
 
-<!-- skip-example -->
-```js
+```ts
 observable.subscribe(x => console.log(x));
 ```
 
@@ -326,8 +335,10 @@ next*(error|complete)?
 
 The following is an example of an Observable execution that delivers three Next notifications, then completes:
 
-```js
-var observable = Rx.Observable.create(function subscribe(observer) {
+```ts
+import { Observable } from 'rxjs';
+
+const observable = Observable.create(function subscribe(observer) {
   observer.next(1);
   observer.next(2);
   observer.next(3);
@@ -337,8 +348,10 @@ var observable = Rx.Observable.create(function subscribe(observer) {
 
 Observables strictly adhere to the Observable Contract, so the following code would not deliver the Next notification `4`:
 
-```js
-var observable = Rx.Observable.create(function subscribe(observer) {
+```ts
+import { Observable } from 'rxjs';
+
+const observable = Observable.create(function subscribe(observer) {
   observer.next(1);
   observer.next(2);
   observer.next(3);
@@ -349,8 +362,10 @@ var observable = Rx.Observable.create(function subscribe(observer) {
 
 It is a good idea to wrap any code in `subscribe` with `try`/`catch` block that will deliver an Error notification if it catches an exception:
 
-```js
-var observable = Rx.Observable.create(function subscribe(observer) {
+```ts
+import { Observable } from 'rxjs';
+
+const observable = Observable.create(function subscribe(observer) {
   try {
     observer.next(1);
     observer.next(2);
@@ -368,16 +383,17 @@ Because Observable Executions may be infinite, and it's common for an Observer t
 
 When `observable.subscribe` is called, the Observer gets attached to the newly created Observable execution. This call also returns an object, the `Subscription`:
 
-<!-- skip-example -->
-```js
-var subscription = observable.subscribe(x => console.log(x));
+```ts
+const subscription = observable.subscribe(x => console.log(x));
 ```
 
-The Subscription represents the ongoing execution, and has a minimal API which allows you to cancel that execution. Read more about the [`Subscription` type here](./overview.html#subscription). With `subscription.unsubscribe()` you can cancel the ongoing execution:
+The Subscription represents the ongoing execution, and has a minimal API which allows you to cancel that execution. Read more about the [`Subscription` type here](./subscription). With `subscription.unsubscribe()` you can cancel the ongoing execution:
 
-```js
-var observable = Rx.Observable.from([10, 20, 30]);
-var subscription = observable.subscribe(x => console.log(x));
+```ts
+import { Observable } from 'rxjs';
+
+const observable = Observable.from([10, 20, 30]);
+const subscription = observable.subscribe(x => console.log(x));
 // Later:
 subscription.unsubscribe();
 ```
