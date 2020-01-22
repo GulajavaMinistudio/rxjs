@@ -26,8 +26,8 @@ describe('groupBy operator', () => {
     return str.split('').reverse().join('');
   }
 
-  function mapObject(obj: object, fn: Function) {
-    const out = {};
+  function mapObject(obj: Record<string, any>, fn: Function) {
+    const out: Record<string, any> = {};
     for (const p in obj) {
       if (obj.hasOwnProperty(p)) {
         out[p] = fn(obj[p]);
@@ -45,7 +45,7 @@ describe('groupBy operator', () => {
     of(1, 2, 3).pipe(
       groupBy((x: number) => x % 2)
     ).subscribe((g: any) => {
-        const expectedGroup = expectedGroups.shift();
+        const expectedGroup = expectedGroups.shift()!;
         expect(g.key).to.equal(expectedGroup.key);
 
         g.subscribe((x: any) => {
@@ -63,7 +63,7 @@ describe('groupBy operator', () => {
     of(1, 2, 3).pipe(
       groupBy((x: number) => x % 2, (x: number) => x + '!')
     ).subscribe((g: any) => {
-        const expectedGroup = expectedGroups.shift();
+        const expectedGroup = expectedGroups.shift()!;
         expect(g.key).to.equal(expectedGroup.key);
 
         g.subscribe((x: any) => {
@@ -107,12 +107,12 @@ describe('groupBy operator', () => {
     ];
 
     of(1, 2, 3).pipe(
-      groupBy((x: number) => x % 2, null, null, () => new ReplaySubject(1)),
+      groupBy((x: number) => x % 2, null as any, null as any, () => new ReplaySubject(1)),
       // Ensure each inner group reaches the destination after the first event
       // has been next'd to the group
       delay(5)
     ).subscribe((g: any) => {
-        const expectedGroup = expectedGroups.shift();
+        const expectedGroup = expectedGroups.shift()!;
         expect(g.key).to.equal(expectedGroup.key);
 
         g.subscribe((x: any) => {
@@ -607,7 +607,7 @@ describe('groupBy operator', () => {
       z: TestScheduler.parseMarbles(z, values)
     };
 
-    const unsubscriptionFrames = {
+    const unsubscriptionFrames: Record<string, number> = {
       foo: TestScheduler.parseMarblesAsSubscriptions(unsubw).unsubscribedFrame,
       bar: TestScheduler.parseMarblesAsSubscriptions(unsubx).unsubscribedFrame,
       baz: TestScheduler.parseMarblesAsSubscriptions(unsuby).unsubscribedFrame,
@@ -1185,14 +1185,14 @@ describe('groupBy operator', () => {
       z: TestScheduler.parseMarbles(z, values)
     };
 
-    const unsubscriptionFrames = {
+    const unsubscriptionFrames: Record<string, number> = {
       foo: TestScheduler.parseMarblesAsSubscriptions(unsubv).unsubscribedFrame,
       bar: TestScheduler.parseMarblesAsSubscriptions(unsubw).unsubscribedFrame,
       baz: TestScheduler.parseMarblesAsSubscriptions(unsubx).unsubscribedFrame,
       qux: TestScheduler.parseMarblesAsSubscriptions(unsuby).unsubscribedFrame,
       foo2: TestScheduler.parseMarblesAsSubscriptions(unsubz).unsubscribedFrame
     };
-    const hasUnsubscribed = {};
+    const hasUnsubscribed: Record<string, boolean> = {};
 
     const source = e1.pipe(
       groupBy(
@@ -1261,7 +1261,7 @@ describe('groupBy operator', () => {
        y: TestScheduler.parseMarbles(y, values),
      };
 
-     const subscriptionFrames = {
+     const subscriptionFrames: Record<string, number> = {
        foo: TestScheduler.parseMarblesAsSubscriptions(subv).subscribedFrame,
        bar: TestScheduler.parseMarblesAsSubscriptions(subw).subscribedFrame,
        baz: TestScheduler.parseMarblesAsSubscriptions(subx).subscribedFrame,
@@ -1477,7 +1477,7 @@ describe('groupBy operator', () => {
 
     result
       .subscribe((g: any) => {
-        const expectedGroup = expectedGroups.shift();
+        const expectedGroup = expectedGroups.shift()!;
         expect(g.key).to.equal(expectedGroup.key);
 
         g.subscribe((x: any) => {
