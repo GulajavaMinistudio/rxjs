@@ -1,7 +1,7 @@
 import { Operator } from '../Operator';
 import { Subscriber } from '../Subscriber';
 import { ArgumentOutOfRangeError } from '../util/ArgumentOutOfRangeError';
-import { empty } from '../observable/empty';
+import { EMPTY } from '../observable/empty';
 import { Observable } from '../Observable';
 import { MonoTypeOperatorFunction, TeardownLogic } from '../types';
 
@@ -44,13 +44,12 @@ import { MonoTypeOperatorFunction, TeardownLogic } from '../types';
  * the sequence of values emitted by the source Observable.
  * @return {Observable<T>} An Observable that emits at most the last count
  * values emitted by the source Observable.
- * @method takeLast
- * @owner Observable
+ * @name takeLast
  */
 export function takeLast<T>(count: number): MonoTypeOperatorFunction<T> {
   return function takeLastOperatorFunction(source: Observable<T>): Observable<T> {
     if (count === 0) {
-      return empty();
+      return EMPTY;
     } else {
       return source.lift(new TakeLastOperator(count));
     }

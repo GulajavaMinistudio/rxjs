@@ -9,6 +9,7 @@ import { throwError } from './observable/throwError';
 import { observable as Symbol_observable } from './symbol/observable';
 import { pipeFromArray } from './util/pipe';
 import { config } from './config';
+import { asyncIteratorFrom } from './asyncIteratorFrom';
 
 /**
  * A representation of any set of values over any amount of time. This is the most basic building block
@@ -354,13 +355,14 @@ export class Observable<T> implements Subscribable<T> {
 
   /**
    * Subscribe to this Observable and get a Promise resolving on
-   * `complete` with the last emission.
+   * `complete` with the last emission (if any).
    *
    * @method toPromise
    * @param [promiseCtor] a constructor function used to instantiate
    * the Promise
    * @return A Promise that resolves with the last value emit, or
-   * rejects on an error.
+   * rejects on an error. If there were no emissions, Promise
+   * resolves with undefined.
    */
   toPromise(promiseCtor?: PromiseConstructorLike): Promise<T | undefined> {
     promiseCtor = getPromiseCtor(promiseCtor);
@@ -390,3 +392,24 @@ function getPromiseCtor(promiseCtor: PromiseConstructorLike | undefined) {
 
   return promiseCtor;
 }
+
+export interface Observable<T> {
+  [Symbol.asyncIterator](): AsyncIterableIterator<T>;
+}
+
+(function () {
+  /**
+   * We only add this symbol if the runtime supports it.
+   * Adding this adds support for subscribing to observables
+   * via `for await(const value of source$) {}`
+   *
+   * This passes muster in Node 9, which does not support
+   * async iterators. As well as working in Node 12, which does
+   * support the symbol.
+   */
+  if (Symbol && Symbol.asyncIterator) {
+    Observable.prototype[Symbol.asyncIterator] = function () {
+      return asyncIteratorFrom(this);
+    };
+  }
+})();

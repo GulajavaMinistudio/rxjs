@@ -1,6 +1,6 @@
 {
   "name": "rxjs",
-  "version": "7.0.0-alpha.1",
+  "version": "7.0.0-beta.0",
   "description": "Reactive Extensions for modern JavaScript",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm5/index.js",
@@ -26,7 +26,6 @@
     "precommit": "lint-staged",
     "commitmsg": "validate-commit-msg",
     "build:spec:browser": "echo \"Browser test is not working currently\" && exit -1 && webpack --config spec/support/webpack.mocha.config.js",
-    "decision_tree_widget": "cd doc/decision-tree-widget && npm run build && cd ../..",
     "lint_spec": "tslint -c tslint.json \"spec/**/*.ts\"",
     "lint_src": "tslint -c tslint.json \"src/**/*.ts\"",
     "lint": "npm-run-all --parallel lint_*",
@@ -125,7 +124,7 @@
     "klaw-sync": "3.0.2",
     "lint-staged": "^8.1.6",
     "lodash": "^4.17.15",
-    "minimist": "1.2.0",
+    "minimist": "1.2.2",
     "mkdirp": "0.5.1",
     "mocha": "5.0.0",
     "npm-run-all": "4.1.2",
@@ -145,7 +144,7 @@
     "tslint-etc": "1.9.2",
     "tslint-no-toplevel-property-access": "0.0.2",
     "tslint-no-unused-expression-chai": "0.0.3",
-    "typescript": "3.7.2",
+    "typescript": "~3.8.3",
     "validate-commit-msg": "2.14.0",
     "webpack": "^4.31.0"
   },

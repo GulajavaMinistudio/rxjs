@@ -146,6 +146,7 @@ These are Observable creation operators that also have join functionality -- emi
 - [`concat`](/api/index/function/concat)
 - [`forkJoin`](/api/index/function/forkJoin)
 - [`merge`](/api/index/function/merge)
+- [`partition`](/api/index/function/partition)
 - [`race`](/api/index/function/race)
 - [`zip`](/api/index/function/zip)
 
@@ -266,7 +267,7 @@ Also see the [Join Creation Operators](#join-creation-operators) section above.
 
 
 
-## Creating custom observables
+## Creating custom operators
 
 ### Use the `pipe()` function to make new operators
 
@@ -276,7 +277,7 @@ For example, you could make a function that discarded odd values and doubled eve
 
 ```ts
 import { pipe } from 'rxjs';
-import { filter, map } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
 
 function discardOddDoubleEven() {
   return pipe(

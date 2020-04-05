@@ -37,8 +37,7 @@ import { MonoTypeOperatorFunction, TeardownLogic } from '../types';
  * @param {function(notifications: Observable): Observable} notifier - Receives an Observable of notifications with
  * which a user can `complete` or `error`, aborting the repetition.
  * @return {Observable} The source Observable modified with repeat logic.
- * @method repeatWhen
- * @owner Observable
+ * @name repeatWhen
  */
 export function repeatWhen<T>(notifier: (notifications: Observable<any>) => Observable<any>): MonoTypeOperatorFunction<T> {
   return (source: Observable<T>) => source.lift(new RepeatWhenOperator(notifier));
@@ -60,7 +59,7 @@ class RepeatWhenOperator<T> implements Operator<T, T> {
  */
 class RepeatWhenSubscriber<T, R> extends OuterSubscriber<T, R> {
 
-  private notifications: Subject<any> | null = null;
+  private notifications: Subject<void> | null = null;
   private retries: Observable<any> | null = null;
   private retriesSubscription: Subscription | null | undefined = null;
   private sourceIsBeingSubscribedTo: boolean = true;
