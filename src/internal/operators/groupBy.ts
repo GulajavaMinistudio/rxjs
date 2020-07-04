@@ -6,6 +6,7 @@ import { Subject } from '../Subject';
 import { OperatorFunction } from '../types';
 
 /* tslint:disable:max-line-length */
+export function groupBy<T, K extends T>(keySelector: (value: T) => value is K): OperatorFunction<T, GroupedObservable<true, K> | GroupedObservable<false, Exclude<T, K>>>;
 export function groupBy<T, K>(keySelector: (value: T) => K): OperatorFunction<T, GroupedObservable<K, T>>;
 export function groupBy<T, K>(keySelector: (value: T) => K, elementSelector: void, durationSelector: (grouped: GroupedObservable<K, T>) => Observable<any>): OperatorFunction<T, GroupedObservable<K, T>>;
 export function groupBy<T, K, R>(keySelector: (value: T) => K, elementSelector?: (value: T) => R, durationSelector?: (grouped: GroupedObservable<K, R>) => Observable<any>): OperatorFunction<T, GroupedObservable<K, R>>;
@@ -25,7 +26,7 @@ export function groupBy<T, K, R>(keySelector: (value: T) => K, elementSelector?:
  * {@link GroupedObservable} for this key is created and emits.
  *
  * A {@link GroupedObservable} represents values belonging to the same group represented by a common key. The common
- * key is available as the key field of a {@link GroupedObservable} instance.
+ * key is available as the `key` field of a {@link GroupedObservable} instance.
  *
  * The elements emitted by {@link GroupedObservable}s are by default the items emitted by the Observable, or elements
  * returned by the elementSelector function.
@@ -46,7 +47,7 @@ export function groupBy<T, K, R>(keySelector: (value: T) => K, elementSelector?:
  *   {id: 3, name: 'TSLint'}
  * ).pipe(
  *   groupBy(p => p.id),
- *   mergeMap((group$) => group$.pipe(reduce((acc, cur) => [...acc, cur], []))),
+ *   mergeMap((group$) => group$.pipe(reduce((acc, cur) => [...acc, cur], [])))
  * )
  * .subscribe(p => console.log(p));
  *
@@ -95,6 +96,8 @@ export function groupBy<T, K, R>(keySelector: (value: T) => K, elementSelector?:
  * @param {function(grouped: GroupedObservable<K,R>): Observable<any>} [durationSelector]
  * A function that returns an Observable to determine how long each group should
  * exist.
+ * @param {function(): Subject<R>} [subjectSelector] Factory function to create an
+ * intermediate Subject through which grouped elements are emitted.
  * @return {Observable<GroupedObservable<K,R>>} An Observable that emits
  * GroupedObservables, each of which corresponds to a unique key value and each
  * of which emits those items from the source Observable that share that key

@@ -1,12 +1,10 @@
 import { expect } from 'chai';
 import { TestScheduler } from 'rxjs/testing';
-import { asyncScheduler, of, from, Observable, asapScheduler, Observer, observable, Subject, EMPTY } from 'rxjs';
+import { asyncScheduler, of, from, Observer, observable, Subject } from 'rxjs';
 import { first, concatMap, delay } from 'rxjs/operators';
 
 // tslint:disable:no-any
-declare const asDiagram: any;
 declare const expectObservable: any;
-declare const type: any;
 declare const rxTestScheduler: TestScheduler;
 // tslint:enable:no-any
 
@@ -16,8 +14,7 @@ function getArguments<T>(...args: T[]) {
 
 /** @test {from} */
 describe('from', () => {
-  asDiagram('from([10, 20, 30])')
-  ('should create an observable from an array', () => {
+  it('should create an observable from an array', () => {
     const e1 = from([10, 20, 30]).pipe(
       // for the purpose of making a nice diagram, spread out the synchronous emissions
       concatMap((x, i) => of(x).pipe(
@@ -35,20 +32,6 @@ describe('from', () => {
     };
 
     expect(r).to.throw();
-  });
-
-  type('should return T for InteropObservable objects', () => {
-    /* tslint:disable:no-unused-variable */
-    const o1: Observable<number> = from([] as number[], asapScheduler);
-    const o2: Observable<{ a: string }> = from(EMPTY);
-    const o3: Observable<{ b: number }> = from(new Promise<{b: number}>(resolve => resolve()));
-    /* tslint:enable:no-unused-variable */
-  });
-
-  type('should return T for arrays', () => {
-    /* tslint:disable:no-unused-variable */
-    const o1: Observable<number> = from([] as number[], asapScheduler);
-    /* tslint:enable:no-unused-variable */
   });
 
   const fakervable = <T>(...values: T[]) => ({

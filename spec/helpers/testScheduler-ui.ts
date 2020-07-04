@@ -56,8 +56,6 @@ if (global && !(typeof window !== 'undefined')) {
   global.Test = global.mocha.Test;
 }
 
-const diagramFunction = global.asDiagram;
-
 //mocha creates own global context per each test suite, simple patching to global won't deliver its context into test cases.
 //this custom interface is just mimic of existing one amending test scheduler behavior previously test-helper does via global patching.
 module.exports = function(suite: any) {
@@ -117,17 +115,6 @@ module.exports = function(suite: any) {
       const suite = context.describe(title, fn);
       mocha.grep(suite.fullTitle());
       return suite;
-    };
-
-    /**
-     * Describe a test case to test type definition
-     * sanity on build time. Recommended only for
-     * exceptional type definition won't be used in test cases.
-     */
-
-    context.type = function(title: any, fn: any) {
-      //intentionally does not execute to avoid unexpected side effect occurs by subscription,
-      //or infinite source. Suffecient to check build time only.
     };
 
     function stringify(x: any): string {
@@ -212,18 +199,6 @@ module.exports = function(suite: any) {
       test.file = file;
       suite.addTest(test);
       return test;
-    };
-
-    /**
-     * Describe a specification or test-case
-     * to be represented as marble diagram png.
-     * It will still serve as normal test cases as well.
-     */
-    context.asDiagram = function (label: any) {
-      if (diagramFunction) {
-        return diagramFunction(label, it);
-      }
-      return it;
     };
 
     /**

@@ -18,7 +18,7 @@ For example, the operator called [`map`](/api/operators/map) is analogous to the
 import { of } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-map(x => x * x)(of(1, 2, 3)).subscribe((v) => console.log(`value: ${v}`));
+of(1, 2, 3).pipe(map(x => x * x)).subscribe((v) => console.log(`value: ${v}`));
 
 // Logs:
 // value: 1 
@@ -33,7 +33,7 @@ will emit `1`, `4`, `9`.  Another useful operator is [`first`](/api/operators/fi
 import { of } from 'rxjs';
 import { first } from 'rxjs/operators';
 
-first()(of(1, 2, 3)).subscribe((v) => console.log(`value: ${v}`));
+of(1, 2, 3).pipe(first()).subscribe((v) => console.log(`value: ${v}`));
 
 // Logs:
 // value: 1 
@@ -82,7 +82,7 @@ const fileObservable = urlObservable.pipe(
 );
 ```
 
-`http.get()` returns an Observable (of string or string arrays probably) for each individual URL.  Now you have an Observables *of* Observables, a higher-order Observable.
+`http.get()` returns an Observable (of string or string arrays probably) for each individual URL.  Now you have an Observable *of* Observables, a higher-order Observable.
 
 But how do you work with a higher-order Observable? Typically, by _flattening_: by (somehow) converting a higher-order Observable into an ordinary Observable.  For example:
 
@@ -111,7 +111,7 @@ To explain how operators work, textual descriptions are often not enough. Many o
 
 Below you can see the anatomy of a marble diagram.
 
-<img src="assets/images/guide/marble-diagram-anatomy.svg">
+<img src="../src/assets/images/guide/marble-diagram-anatomy.svg">
 
 Throughout this documentation site, we extensively use marble diagrams to explain how operators work. They may be really useful in other contexts too, like on a whiteboard or even in our unit tests (as ASCII diagrams).
 

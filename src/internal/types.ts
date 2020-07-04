@@ -80,6 +80,42 @@ export type ObservableLike<T> = InteropObservable<T>;
 
 export type InteropObservable<T> = { [Symbol.observable]: () => Subscribable<T>; };
 
+/** NOTIFICATIONS */
+
+/**
+ * A notification representing a "next" from an observable.
+ * Can be used with {@link dematerialize}.
+ */
+export interface NextNotification<T> {
+  /** The kind of notification. Always "N" */
+  kind: 'N';
+  /** The value of the notification. */
+  value: T;
+}
+
+/**
+ * A notification representing an "error" from an observable.
+ * Can be used with {@link dematerialize}.
+ */
+export interface ErrorNotification {
+  /** The kind of notification. Always "E" */
+  kind: 'E';
+  error: any;
+}
+
+/**
+ * A notification representing a "completion" from an observable.
+ * Can be used with {@link dematerialize}.
+ */
+export interface CompleteNotification {
+  kind: 'C';
+}
+
+/**
+ * Valid observable notification types.
+ */
+export type ObservableNotification<T> = NextNotification<T> | ErrorNotification | CompleteNotification;
+
 /** OBSERVER INTERFACES */
 
 export interface NextObserver<T> {
@@ -170,13 +206,31 @@ export type ObservedValueTupleFromArray<X> =
     : never;
 
 /**
- * Adds a type to the beginning of a tuple.
- * If you pass in `Unshift<[B, C], A>` you will get back `[A, B, C]`.
+ * Constructs a new tuple with the specified type at the head.
+ * If you declare `Cons<A, [B, C]>` you will get back `[A, B, C]`.
  */
-export type Unshift<X extends any[], Y> =
-  ((arg: Y, ...rest: X) => any) extends ((...args: infer U) => any)
+export type Cons<X, Y extends any[]> =
+  ((arg: X, ...rest: Y) => any) extends ((...args: infer U) => any)
     ? U
     : never;
+
+/**
+ * Extracts the head of a tuple.
+ * If you declare `Head<[A, B, C]>` you will get back `A`.
+ */
+export type Head<X extends any[]> =
+  ((...args: X) => any) extends ((arg: infer U, ...rest: any[]) => any)
+    ? U
+    : never;
+
+/**
+ * Extracts the tail of a tuple.
+ * If you declare `Tail<[A, B, C]>` you will get back `[B, C]`.
+ */
+export type Tail<X extends any[]> =
+((...args: X) => any) extends ((arg: any, ...rest: infer U) => any)
+  ? U
+  : never;
 
 /**
  * Extracts the generic value from an Array type.
@@ -184,3 +238,12 @@ export type Unshift<X extends any[], Y> =
  * `ValueFromArray<T>` will return the actual type of `string`.
  */
 export type ValueFromArray<A> = A extends Array<infer T> ? T : never;
+
+/**
+ * Gets the value type from an {@link ObservableNotification}, if possible.
+ */
+export type ValueFromNotification<T> = T extends { kind: 'N'|'E'|'C' } ?
+  (T extends NextNotification<any> ?
+    (T extends { value: infer V } ? V : undefined )
+  : never)
+  : never;

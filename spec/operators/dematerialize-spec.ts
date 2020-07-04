@@ -1,14 +1,12 @@
-import { of, Notification } from 'rxjs';
-import { dematerialize, map, mergeMap } from 'rxjs/operators';
+import { of, Notification, ObservableNotification } from 'rxjs';
+import { dematerialize, map, mergeMap, materialize } from 'rxjs/operators';
 import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 
-declare function asDiagram(arg: string): Function;
-
-const NO_VALUES: { [key: string]: Notification<any> } = {};
+const NO_VALUES: { [key: string]: ObservableNotification<any> } = {};
 
 /** @test {dematerialize} */
 describe('dematerialize operator', () => {
-  asDiagram('dematerialize')('should dematerialize an Observable', () => {
+  it('should dematerialize an Observable', () => {
     const values = {
       a: '{x}',
       b: '{y}',
@@ -149,7 +147,7 @@ describe('dematerialize operator', () => {
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
   });
 
-  it('should dematerialize and completes when stream compltes with complete notification', () => {
+  it('should dematerialize and completes when stream completes with complete notification', () => {
     const e1 =   hot('----(a|)', { a: Notification.createComplete() });
     const e1subs =   '^   !';
     const expected = '----|';
@@ -165,5 +163,15 @@ describe('dematerialize operator', () => {
 
     expectObservable(e1.pipe(dematerialize())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
+  });
+
+  it('should work with materialize', () => {
+    const source = hot('----a--b---c---d---e----f--|');
+    const expected = '----a--b---c---d---e----f--|';
+    const result = source.pipe(
+      materialize(),
+      dematerialize()
+    );
+    expectObservable(result).toBe(expected);
   });
 });

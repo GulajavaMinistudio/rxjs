@@ -13,6 +13,13 @@ import { Subscription } from './Subscription';
  * If the observable stream emits an error, the returned promise will reject
  * with that error.
  *
+ * **WARNING**: Only use this with observables you *know* will emit at least one value,
+ * *OR* complete. If the source observable does not emit one value or complete, you will
+ * end up with a promise that is hung up, and potentially all of the state of an
+ * async function hanging out in memory. To avoid this situation, look into adding
+ * something like {@link timeout}, {@link take}, {@link takeWhile}, or {@link takeUntil}
+ * amongst others.
+ *
  * ### Example
  *
  * Wait for the first value from a stream and emit it from a promise in
@@ -23,7 +30,7 @@ import { Subscription } from './Subscription';
  *
  * async function execute() {
  *    const source$ = interval(2000);
- *    const firstNumber = await firstValueFrom(source);
+ *    const firstNumber = await firstValueFrom(source$);
  *    console.log(`The first number is ${firstNumber}`);
  * }
  *
@@ -35,11 +42,11 @@ import { Subscription } from './Subscription';
  *
  * @param source the observable to convert to a promise
  */
-export function firstValueFrom<T>(source$: Observable<T>) {
+export function firstValueFrom<T>(source: Observable<T>) {
   return new Promise<T>((resolve, reject) => {
     const subs = new Subscription();
     subs.add(
-      source$.subscribe({
+      source.subscribe({
         next: value => {
           resolve(value);
           subs.unsubscribe();

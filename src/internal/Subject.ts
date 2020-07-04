@@ -22,10 +22,8 @@ export class SubjectSubscriber<T> extends Subscriber<T> {
  *
  * Every Subject is an Observable and an Observer. You can subscribe to a
  * Subject, and you can call next to feed values as well as error and complete.
- *
- * @class Subject<T>
  */
-export class Subject<T = void> extends Observable<T> implements SubscriptionLike {
+export class Subject<T> extends Observable<T> implements SubscriptionLike {
 
   [rxSubscriberSymbol]() {
     return new SubjectSubscriber(this);
@@ -41,15 +39,19 @@ export class Subject<T = void> extends Observable<T> implements SubscriptionLike
 
   thrownError: any = null;
 
-  constructor() {
-    super();
-  }
-
-  /**@nocollapse
-   * @deprecated use new Subject() instead
-  */
+  /**
+   * Creates a "subject" by basically gluing an observer to an observable.
+   *
+   * @nocollapse
+   * @deprecated Recommended you do not use, will be removed at some point in the future. Plans for replacement still under discussion.
+   */
   static create: Function = <T>(destination: Observer<T>, source: Observable<T>): AnonymousSubject<T> => {
     return new AnonymousSubject<T>(destination, source);
+  }
+
+  constructor() {
+    // NOTE: This must be here to obscure Observable's constructor.
+    super();
   }
 
   lift<R>(operator: Operator<T, R>): Observable<R> {

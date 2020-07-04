@@ -13,10 +13,10 @@ export { ReplaySubject } from './internal/ReplaySubject';
 export { AsyncSubject } from './internal/AsyncSubject';
 
 /* Schedulers */
-export { asap as asapScheduler } from './internal/scheduler/asap';
-export { async as asyncScheduler } from './internal/scheduler/async';
-export { queue as queueScheduler } from './internal/scheduler/queue';
-export { animationFrame as animationFrameScheduler } from './internal/scheduler/animationFrame';
+export { asap, asapScheduler } from './internal/scheduler/asap';
+export { async, asyncScheduler } from './internal/scheduler/async';
+export { queue, queueScheduler } from './internal/scheduler/queue';
+export { animationFrame, animationFrameScheduler } from './internal/scheduler/animationFrame';
 export { VirtualTimeScheduler, VirtualAction } from './internal/scheduler/VirtualTimeScheduler';
 export { Scheduler } from './internal/Scheduler';
 
@@ -40,9 +40,11 @@ export { firstValueFrom } from './internal/firstValueFrom';
 /* Error types */
 export { ArgumentOutOfRangeError } from './internal/util/ArgumentOutOfRangeError';
 export { EmptyError } from './internal/util/EmptyError';
+export { NotFoundError } from './internal/util/NotFoundError';
 export { ObjectUnsubscribedError } from './internal/util/ObjectUnsubscribedError';
-export { UnsubscriptionError } from './internal/util/UnsubscriptionError';
+export { SequenceError } from './internal/util/SequenceError';
 export { TimeoutError } from './internal/util/TimeoutError';
+export { UnsubscriptionError } from './internal/util/UnsubscriptionError';
 
 /* Static observable creation exports */
 export { bindCallback } from './internal/observable/bindCallback';

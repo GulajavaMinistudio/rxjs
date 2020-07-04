@@ -2,12 +2,9 @@ import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/mar
 import { toArray, mergeMap } from 'rxjs/operators';
 import { of } from 'rxjs';
 
-declare const type: Function;
-declare const asDiagram: Function;
-
 /** @test {toArray} */
 describe('toArray operator', () => {
-  asDiagram('toArray')('should reduce the values of an observable into an array', () => {
+  it('should reduce the values of an observable into an array', () => {
     const e1 =   hot('---a--b--|');
     const e1subs =   '^        !';
     const expected = '---------(w|)';
@@ -114,13 +111,5 @@ describe('toArray operator', () => {
 
     expectObservable(e1.pipe(toArray())).toBe(expected);
     expectSubscriptions(e1.subscriptions).toBe(e1subs);
-  });
-
-  type('should infer the element type', () => {
-    const typeValue = {
-      val: 3
-    };
-
-    of(typeValue).pipe(toArray()).subscribe(x => { x[0].val.toString(); });
   });
 });

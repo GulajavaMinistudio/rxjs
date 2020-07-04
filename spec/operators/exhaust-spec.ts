@@ -1,14 +1,11 @@
 import { expect } from 'chai';
 import { exhaust, mergeMap } from 'rxjs/operators';
 import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
-import { of, Observable } from 'rxjs';
-
-declare function asDiagram(arg: string): Function;
-declare const type: Function;
+import { of } from 'rxjs';
 
 /** @test {exhaust} */
 describe('exhaust operator', () => {
-  asDiagram('exhaust')('should handle a hot observable of hot observables', () => {
+  it('should handle a hot observable of hot observables', () => {
     const x =   cold(      '--a---b---c--|               ');
     const y =   cold(              '---d--e---f---|      ');
     const z =   cold(                    '---g--h---i---|');
@@ -214,51 +211,5 @@ describe('exhaust operator', () => {
       }, () => {
         done(new Error('should not be called'));
       });
-  });
-
-  type(() => {
-    /* tslint:disable:no-unused-variable */
-    const source1 = of(1, 2, 3);
-    const source2 = [1, 2, 3];
-    const source3 = new Promise<number>(d => d(1));
-
-    let result: Observable<number> = of(source1, source2, source3)
-      .pipe(exhaust());
-    /* tslint:enable:no-unused-variable */
-  });
-
-  type(() => {
-    /* tslint:disable:no-unused-variable */
-    const source1 = of(1, 2, 3);
-    const source2 = [1, 2, 3];
-    const source3 = new Promise<number>(d => d(1));
-
-    let result: Observable<number> = of(source1, source2, source3)
-      .pipe(exhaust());
-    /* tslint:enable:no-unused-variable */
-  });
-
-  type(() => {
-    // coerce type to a specific type
-    /* tslint:disable:no-unused-variable */
-    const source1 = of(1, 2, 3);
-    const source2 = [1, 2, 3];
-    const source3 = new Promise<number>(d => d(1));
-
-    let result: Observable<string> = of(<any>source1, <any>source2, <any>source3)
-      .pipe(exhaust<string>());
-    /* tslint:enable:no-unused-variable */
-  });
-
-  type(() => {
-    // coerce type to a specific type
-    /* tslint:disable:no-unused-variable */
-    const source1 = of(1, 2, 3);
-    const source2 = [1, 2, 3];
-    const source3 = new Promise<number>(d => d(1));
-
-    let result: Observable<string> = of(<any>source1, <any>source2, <any>source3)
-      .pipe(exhaust<string>());
-    /* tslint:enable:no-unused-variable */
   });
 });

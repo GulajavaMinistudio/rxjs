@@ -1,6 +1,5 @@
 import { Operator } from '../Operator';
 import { Subscriber } from '../Subscriber';
-import { Subscription } from '../Subscription';
 import { Observable } from '../Observable';
 import { MonoTypeOperatorFunction, TeardownLogic } from '../types';
 
@@ -68,18 +67,8 @@ class FinallyOperator<T> implements Operator<T, T> {
   }
 
   call(subscriber: Subscriber<T>, source: any): TeardownLogic {
-    return source.subscribe(new FinallySubscriber(subscriber, this.callback));
-  }
-}
-
-/**
- * We need this JSDoc comment for affecting ESDoc.
- * @ignore
- * @extends {Ignored}
- */
-class FinallySubscriber<T> extends Subscriber<T> {
-  constructor(destination: Subscriber<T>, callback: () => void) {
-    super(destination);
-    this.add(new Subscription(callback));
+    const subscription = source.subscribe(subscriber);
+    subscription.add(this.callback);
+    return subscription;
   }
 }

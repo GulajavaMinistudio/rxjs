@@ -2,10 +2,10 @@ import { expect } from 'chai';
 import * as sinon from 'sinon';
 import { Observer, TeardownLogic } from '../src/internal/types';
 import { cold, expectObservable, expectSubscriptions } from './helpers/marble-testing';
-import { Observable, config, Subscription, noop, Subscriber, Operator, NEVER, Subject, of, throwError, empty, interval } from 'rxjs';
-import { map, multicast, refCount, filter, count, tap, combineLatest, concat, merge, race, zip, take, finalize } from 'rxjs/operators';
+import { Observable, config, Subscription, noop, Subscriber, Operator, NEVER, Subject, of, throwError, empty } from 'rxjs';
+import { map, multicast, refCount, filter, count, tap, combineLatest, concat, merge, race, zip, catchError } from 'rxjs/operators';
 
-declare const asDiagram: any, rxTestScheduler: any;
+declare const rxTestScheduler: any;
 
 function expectFullObserver(val: any) {
   expect(val).to.be.a('object');
@@ -36,7 +36,7 @@ describe('Observable', () => {
   });
 
   it('should send errors thrown in the constructor down the error path', (done) => {
-    new Observable<number>((observer) => {
+    new Observable<number>(() => {
       throw new Error('this should be handled');
     })
       .subscribe({
@@ -68,7 +68,7 @@ describe('Observable', () => {
     });
 
     it('should reject promise when in error', (done) => {
-      throwError('bad').forEach((x) => {
+      throwError('bad').forEach(() => {
         done(new Error('should not be called'));
       }, Promise).then(() => {
         done(new Error('should not complete'));
@@ -265,7 +265,7 @@ describe('Observable', () => {
       });
 
       source.subscribe({
-        error(err) {
+        error() {
           /* noop: expected error */
         }
       });
@@ -632,13 +632,6 @@ describe('Observable', () => {
 
 /** @test {Observable} */
 describe('Observable.create', () => {
-  asDiagram('create(obs => { obs.next(1); })')
-    ('should create a cold observable that emits just 1', () => {
-      const e1 = Observable.create((obs: Observer<number>) => { obs.next(1); });
-      const expected = 'x';
-      expectObservable(e1).toBe(expected, { x: 1 });
-    });
-
   it('should create an Observable', () => {
     const result = Observable.create(() => {
       //noop
@@ -662,7 +655,7 @@ describe('Observable.create', () => {
   });
 
   it('should send errors thrown in the passed function down the error path', (done) => {
-    Observable.create((observer: Observer<any>) => {
+    Observable.create(() => {
       throw new Error('this should be handled');
     })
       .subscribe({
@@ -726,7 +719,7 @@ describe('Observable.lift', () => {
     result.subscribe(
       function (x) {
         expect(x).to.equal(expected.shift());
-      }, (x) => {
+      }, () => {
         done(new Error('should not be called'));
       }, () => {
         done();
@@ -752,7 +745,7 @@ describe('Observable.lift', () => {
     result.subscribe(
       function (x) {
         expect(x).to.equal(expected.shift());
-      }, (x) => {
+      }, () => {
         done(new Error('should not be called'));
       }, () => {
         done();
@@ -776,7 +769,7 @@ describe('Observable.lift', () => {
     result.subscribe(
       function (x) {
         expect(x).to.equal(expected.shift());
-      }, (x) => {
+      }, () => {
         done(new Error('should not be called'));
       }, () => {
         done();
@@ -916,7 +909,7 @@ describe('Observable.lift', () => {
         function (x) {
           expect(x).to.equal(expected.shift());
         },
-        (x) => {
+        () => {
           done(new Error('should not be called'));
         }, () => {
           expect(log).to.deep.equal([
@@ -945,58 +938,29 @@ describe('Observable.lift', () => {
       consoleStub.restore();
     }
   });
-});
 
-if (Symbol && Symbol.asyncIterator) {
-  describe('async iterator support', () => {
-    it('should work for sync observables', async () => {
-      const source = of(1, 2, 3);
-      const results: number[] = [];
-      for await (const value of source) {
-        results.push(value);
-      }
-      expect(results).to.deep.equal([1, 2, 3]);
-    });
-
-    it('should throw if the observable errors', async () => {
-      const source = throwError(new Error('bad'));
-      let error: any;
-      try {
-        for await (const _ of source) {
-          // do nothing
+  // TODO: Stop skipping this until a later refactor (probably in version 8)
+  // Discussion here: https://github.com/ReactiveX/rxjs/issues/5370
+  it.skip('should emit an error for unhandled synchronous exceptions from something like a stack overflow', (done) => {
+    const source = of(4).pipe(
+      map(n => {
+        if (n === 4) {
+          throw 'four!';
         }
-      } catch (err) {
-        error = err;
-      }
-      expect(error).to.be.an.instanceOf(Error);
-      expect(error.message).to.equal('bad');
-    });
+        return n;
+      }),
+      catchError((_, source) => source),
+    );
 
-    it('should support async observables', async () => {
-      const source = interval(10).pipe(take(3));
-      const results: number[] = [];
-      for await (const value of source) {
-        results.push(value);
-      }
-      expect(results).to.deep.equal([0, 1, 2]);
-    });
+    let thrownError: any = undefined;
+    try {
+      source.subscribe({
+        error: err => thrownError = err
+      });
+    } catch (err) {
+      done('Should never hit this!');
+    }
 
-    it('should do something clever if the loop exits', async () => {
-      let finalized = false;
-      const source = interval(10).pipe(take(10), finalize(() => finalized = true));
-      const results: number[] = [];
-      try {
-        for await (const value of source) {
-          results.push(value);
-          if (value === 1) {
-            throw new Error('bad');
-          }
-        }
-      } catch (err) {
-        // ignore
-      }
-      expect(results).to.deep.equal([0, 1]);
-      expect(finalized).to.be.true;
-    });
+    expect(thrownError).to.equal(new RangeError('Maximum call stack size exceeded'));
   });
-}
+});

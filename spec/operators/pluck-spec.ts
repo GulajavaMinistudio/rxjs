@@ -3,11 +3,9 @@ import { cold, expectObservable, expectSubscriptions } from '../helpers/marble-t
 import { pluck, map, tap, mergeMap } from 'rxjs/operators';
 import { of } from 'rxjs';
 
-declare function asDiagram(arg: string): Function;
-
 /** @test {pluck} */
 describe('pluck operator', () => {
-  asDiagram('pluck(\'v\')')('should dematerialize an Observable', () => {
+  it('should dematerialize an Observable', () => {
     const values = {
       a: '{v:1}',
       b: '{v:2}',
@@ -196,6 +194,16 @@ describe('pluck operator', () => {
 
     const r = a.pipe(pluck(sym));
     expectObservable(r).toBe(expected, {y: 'abc'});
+    expectSubscriptions(a.subscriptions).toBe(asubs);
+  });
+
+  it('should not break on null values', () => {
+    const a =   cold('--x--|', {x: null});
+    const asubs =    '^    !';
+    const expected = '--y--|';
+
+    const r = a.pipe(pluck('prop'));
+    expectObservable(r).toBe(expected, {y: undefined});
     expectSubscriptions(a.subscriptions).toBe(asubs);
   });
 });

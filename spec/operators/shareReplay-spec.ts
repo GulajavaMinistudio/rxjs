@@ -3,9 +3,8 @@ import * as sinon from 'sinon';
 import { hot, cold, expectObservable, expectSubscriptions } from '../helpers/marble-testing';
 import { shareReplay, mergeMapTo, retry } from 'rxjs/operators';
 import { TestScheduler } from 'rxjs/testing';
-import { Observable, Operator, Observer, of } from 'rxjs';
+import { Observable, Operator, Observer, of, from, defer } from 'rxjs';
 
-declare function asDiagram(arg: string): Function;
 declare const rxTestScheduler: TestScheduler;
 
 /** @test {shareReplay} */
@@ -175,6 +174,7 @@ describe('shareReplay operator', () => {
 
   it('should not restart due to unsubscriptions if refCount is false', () => {
     const source = cold('a-b-c-d-e-f-g-h-i-j');
+    const sourceSubs =  '^------------------';
     const sub1 =        '^------!';
     const expected1 =   'a-b-c-d-';
     const sub2 =        '-----------^-------';
@@ -184,10 +184,14 @@ describe('shareReplay operator', () => {
 
     expectObservable(shared, sub1).toBe(expected1);
     expectObservable(shared, sub2).toBe(expected2);
+    expectSubscriptions(source.subscriptions).toBe(sourceSubs);
   });
 
   it('should restart due to unsubscriptions if refCount is true', () => {
+    const sourceSubs = [];
     const source = cold('a-b-c-d-e-f-g-h-i-j');
+    sourceSubs.push(    '^------!----------------------');
+    sourceSubs.push(    '-----------^------------------');
     const sub1 =        '^------!';
     const expected1 =   'a-b-c-d-';
     const sub2 =        '-----------^------------------';
@@ -197,10 +201,42 @@ describe('shareReplay operator', () => {
 
     expectObservable(shared, sub1).toBe(expected1);
     expectObservable(shared, sub2).toBe(expected2);
+    expectSubscriptions(source.subscriptions).toBe(sourceSubs);
+  });
+
+  it('should not restart due to unsubscriptions if refCount is true when the source has completed', () => {
+    const source = cold('a-(b|)         ');
+    const sourceSubs =  '^-!            ';
+    const sub1 =        '^------!       ';
+    const expected1 =   'a-(b|)         ';
+    const sub2 =        '-----------^!  ';
+    const expected2 =   '-----------(b|)';
+
+    const shared = source.pipe(shareReplay({ bufferSize: 1, refCount: true }));
+
+    expectObservable(shared, sub1).toBe(expected1);
+    expectObservable(shared, sub2).toBe(expected2);
+    expectSubscriptions(source.subscriptions).toBe(sourceSubs);
+  });
+
+  it('should not restart a synchronous source due to unsubscriptions if refCount is true when the source has completed', () => {
+    // The test above this one doesn't actually test completely synchronous
+    // behaviour because of this problem:
+    // https://github.com/ReactiveX/rxjs/issues/5523
+
+    let subscriptions = 0;
+    const source = defer(() => {
+      ++subscriptions;
+      return of(42);
+    }).pipe(shareReplay({ bufferSize: 1, refCount: true }));
+    source.subscribe();
+    source.subscribe();
+    expect(subscriptions).to.equal(1);
   });
 
   it('should default to refCount being false', () => {
     const source = cold('a-b-c-d-e-f-g-h-i-j');
+    const sourceSubs =  '^------------------';
     const sub1 =        '^------!';
     const expected1 =   'a-b-c-d-';
     const sub2 =        '-----------^-------';
@@ -210,6 +246,7 @@ describe('shareReplay operator', () => {
 
     expectObservable(shared, sub1).toBe(expected1);
     expectObservable(shared, sub2).toBe(expected2);
+    expectSubscriptions(source.subscriptions).toBe(sourceSubs);
   });
 
   it('should not break lift() composability', (done: MochaDone) => {
@@ -243,4 +280,23 @@ describe('shareReplay operator', () => {
         done();
       });
   });
+
+  it('should not skip values on a sync source', () => {
+    const a = from(['a', 'b', 'c', 'd']);
+    // We would like for the previous line to read like this:
+    //
+    // const a = cold('(abcd|)');
+    //
+    // However, that would synchronously emit multiple values at frame 0,
+    // but it's not synchronous upon-subscription.
+    // TODO: revisit once https://github.com/ReactiveX/rxjs/issues/5523 is fixed
+
+    const x = cold(  'x-------x');
+    const expected = '(abcd)--d';
+
+    const shared = a.pipe(shareReplay(1));
+    const result = x.pipe(mergeMapTo(shared));
+    expectObservable(result).toBe(expected);
+  });
+
 });
