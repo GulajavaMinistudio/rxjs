@@ -139,6 +139,10 @@ export declare function combineLatest<O extends ObservableInput<any>, R>(array: 
 export declare function combineLatest<O extends ObservableInput<any>>(...observables: Array<O | SchedulerLike>): Observable<any[]>;
 export declare function combineLatest<O extends ObservableInput<any>, R>(...observables: Array<O | ((...values: ObservedValueOf<O>[]) => R) | SchedulerLike>): Observable<R>;
 export declare function combineLatest<R>(...observables: Array<ObservableInput<any> | ((...values: Array<any>) => R) | SchedulerLike>): Observable<R>;
+export declare function combineLatest(sourcesObject: {}): Observable<never>;
+export declare function combineLatest<T, K extends keyof T>(sourcesObject: T): Observable<{
+    [K in keyof T]: ObservedValueOf<T[K]>;
+}>;
 
 export interface CompleteNotification {
     kind: 'C';
@@ -356,15 +360,14 @@ export declare const ObjectUnsubscribedError: ObjectUnsubscribedErrorCtor;
 export declare const observable: string | symbol;
 
 export declare class Observable<T> implements Subscribable<T> {
-    _isScalar: boolean;
-    operator: Operator<any, T> | undefined;
-    source: Observable<any> | undefined;
+    protected operator: Operator<any, T> | undefined;
+    protected source: Observable<any> | undefined;
     constructor(subscribe?: (this: Observable<T>, subscriber: Subscriber<T>) => TeardownLogic);
-    _subscribe(subscriber: Subscriber<any>): TeardownLogic;
-    _trySubscribe(sink: Subscriber<T>): TeardownLogic;
+    protected _subscribe(subscriber: Subscriber<any>): TeardownLogic;
+    protected _trySubscribe(sink: Subscriber<T>): TeardownLogic;
     forEach(next: (value: T) => void): Promise<void>;
     forEach(next: (value: T) => void, promiseCtor: PromiseConstructorLike): Promise<void>;
-    lift<R>(operator?: Operator<T, R>): Observable<R>;
+    protected lift<R>(operator?: Operator<T, R>): Observable<R>;
     pipe(): Observable<T>;
     pipe<A>(op1: OperatorFunction<T, A>): Observable<A>;
     pipe<A, B>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>): Observable<B>;
@@ -385,8 +388,6 @@ export declare class Observable<T> implements Subscribable<T> {
     toPromise<T>(this: Observable<T>, PromiseCtor: typeof Promise): Promise<T | undefined>;
     toPromise<T>(this: Observable<T>, PromiseCtor: PromiseConstructorLike): Promise<T | undefined>;
     static create: Function;
-    static if: typeof iif;
-    static throw: typeof throwError;
 }
 
 export declare type ObservableInput<T> = SubscribableOrPromise<T> | ArrayLike<T> | Iterable<T> | AsyncIterableIterator<T>;

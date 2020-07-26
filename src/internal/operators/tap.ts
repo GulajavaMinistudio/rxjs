@@ -4,6 +4,7 @@ import { Observable } from '../Observable';
 import { MonoTypeOperatorFunction, PartialObserver, TeardownLogic } from '../types';
 import { noop } from '../util/noop';
 import { isFunction } from '../util/isFunction';
+import { lift } from '../util/lift';
 
 /* tslint:disable:max-line-length */
 /** @deprecated Use an observer instead of a complete callback */
@@ -68,11 +69,11 @@ export function tap<T>(nextOrObserver?: PartialObserver<T> | ((x: T) => void) | 
                        error?: ((e: any) => void) | null,
                        complete?: (() => void) | null): MonoTypeOperatorFunction<T> {
   return function tapOperatorFunction(source: Observable<T>): Observable<T> {
-    return source.lift(new DoOperator(nextOrObserver, error, complete));
+    return lift(source, new TapOperator(nextOrObserver, error, complete));
   };
 }
 
-class DoOperator<T> implements Operator<T, T> {
+class TapOperator<T> implements Operator<T, T> {
   constructor(private nextOrObserver?: PartialObserver<T> | ((x: T) => void) | null,
               private error?: ((e: any) => void) | null,
               private complete?: (() => void) | null) {
