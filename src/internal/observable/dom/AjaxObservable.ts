@@ -1,7 +1,7 @@
+/** @prettier */
 import { Observable } from '../../Observable';
 import { Subscriber } from '../../Subscriber';
-import { TeardownLogic } from '../../types';
-import { map } from '../../operators/map';
+import { TeardownLogic, PartialObserver } from '../../types';
 
 export interface AjaxRequest {
   url?: string;
@@ -16,90 +16,12 @@ export interface AjaxRequest {
   crossDomain?: boolean;
   withCredentials?: boolean;
   createXHR?: () => XMLHttpRequest;
-  progressSubscriber?: Subscriber<any>;
+  progressSubscriber?: PartialObserver<ProgressEvent>;
   responseType?: string;
 }
 
-// Declare older APIs we'll check for on global scope.
-declare const XDomainRequest: any;
-declare const ActiveXObject: any;
-
 function isFormData(body: any): body is FormData {
   return typeof FormData !== 'undefined' && body instanceof FormData;
-}
-
-function getCORSRequest(): XMLHttpRequest {
-  if (typeof XMLHttpRequest === 'function') {
-    return new XMLHttpRequest();
-  } else if (typeof XDomainRequest === 'function') {
-    return new XDomainRequest();
-  } else {
-    throw new Error('CORS is not supported by your browser');
-  }
-}
-
-const ancientInternetExplorerProgIDs = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'];
-
-function getXMLHttpRequest(): XMLHttpRequest {
-  if (XMLHttpRequest) {
-    return new XMLHttpRequest();
-  } else if (typeof ActiveXObject === 'function') {
-    // TODO: Remove when we stop supporting IE.
-    for (const progId of ancientInternetExplorerProgIDs) {
-      try {
-        const axoXHR = new ActiveXObject(progId);
-        if (axoXHR) {
-          return axoXHR;
-        }
-      } catch (e) {
-        // Ignore and try the next one
-      }
-    }
-  }
-  throw new Error('XMLHttpRequest is not supported by your browser');
-}
-
-export interface AjaxCreationMethod {
-  (urlOrRequest: string | AjaxRequest): Observable<AjaxResponse>;
-  get(url: string, headers?: Object): Observable<AjaxResponse>;
-  post(url: string, body?: any, headers?: Object): Observable<AjaxResponse>;
-  put(url: string, body?: any, headers?: Object): Observable<AjaxResponse>;
-  patch(url: string, body?: any, headers?: Object): Observable<AjaxResponse>;
-  delete(url: string, headers?: Object): Observable<AjaxResponse>;
-  getJSON<T>(url: string, headers?: Object): Observable<T>;
-}
-
-export function ajaxGet(url: string, headers?: object) {
-  return new AjaxObservable<AjaxResponse>({ method: 'GET', url, headers });
-}
-
-export function ajaxPost(url: string, body?: any, headers?: Object): Observable<AjaxResponse> {
-  return new AjaxObservable<AjaxResponse>({ method: 'POST', url, body, headers });
-}
-
-export function ajaxDelete(url: string, headers?: Object): Observable<AjaxResponse> {
-  return new AjaxObservable<AjaxResponse>({ method: 'DELETE', url, headers });
-}
-
-export function ajaxPut(url: string, body?: any, headers?: Object): Observable<AjaxResponse> {
-  return new AjaxObservable<AjaxResponse>({ method: 'PUT', url, body, headers });
-}
-
-export function ajaxPatch(url: string, body?: any, headers?: Object): Observable<AjaxResponse> {
-  return new AjaxObservable<AjaxResponse>({ method: 'PATCH', url, body, headers });
-}
-
-const mapResponse = map((x: AjaxResponse, index: number) => x.response);
-
-export function ajaxGetJSON<T>(url: string, headers?: Object): Observable<T> {
-  return mapResponse(
-    new AjaxObservable<AjaxResponse>({
-      method: 'GET',
-      url,
-      responseType: 'json',
-      headers
-    })
-  );
 }
 
 /**
@@ -108,52 +30,6 @@ export function ajaxGetJSON<T>(url: string, headers?: Object): Observable<T> {
  * @hide true
  */
 export class AjaxObservable<T> extends Observable<T> {
-  /**
-   * Creates an observable for an Ajax request with either a request object with
-   * url, headers, etc or a string for a URL.
-   *
-   * ## Example
-   * ```ts
-   * import { ajax } from 'rxjs/ajax';
- *
-   * const source1 = ajax('/products');
-   * const source2 = ajax({ url: 'products', method: 'GET' });
-   * ```
-   *
-   * @param {string|Object} request Can be one of the following:
-   *   A string of the URL to make the Ajax call.
-   *   An object with the following properties
-   *   - url: URL of the request
-   *   - body: The body of the request
-   *   - method: Method of the request, such as GET, POST, PUT, PATCH, DELETE
-   *   - async: Whether the request is async
-   *   - headers: Optional headers
-   *   - crossDomain: true if a cross domain request, else false
-   *   - createXHR: a function to override if you need to use an alternate
-   *   XMLHttpRequest implementation.
-   *   - resultSelector: a function to use to alter the output value type of
-   *   the Observable. Gets {@link AjaxResponse} as an argument.
-   * @return {Observable} An observable sequence containing the XMLHttpRequest.
-   * @static true
-   * @name ajax
-   * @owner Observable
-   * @nocollapse
-  */
-  static create: AjaxCreationMethod = (() => {
-    const create: any = (urlOrRequest: string | AjaxRequest) => {
-      return new AjaxObservable(urlOrRequest);
-    };
-
-    create.get = ajaxGet;
-    create.post = ajaxPost;
-    create.delete = ajaxDelete;
-    create.put = ajaxPut;
-    create.patch = ajaxPatch;
-    create.getJSON = ajaxGetJSON;
-
-    return <AjaxCreationMethod>create;
-  })();
-
   private request: AjaxRequest;
 
   constructor(urlOrRequest: string | AjaxRequest) {
@@ -161,15 +37,13 @@ export class AjaxObservable<T> extends Observable<T> {
 
     const request: AjaxRequest = {
       async: true,
-      createXHR: function(this: AjaxRequest) {
-        return this.crossDomain ? getCORSRequest() : getXMLHttpRequest();
-      },
+      createXHR: () => new XMLHttpRequest(),
       crossDomain: true,
       withCredentials: false,
       headers: {},
       method: 'GET',
       responseType: 'json',
-      timeout: 0
+      timeout: 0,
     };
 
     if (typeof urlOrRequest === 'string') {
@@ -204,7 +78,7 @@ export class AjaxSubscriber<T> extends Subscriber<Event> {
   constructor(destination: Subscriber<T>, public request: AjaxRequest) {
     super(destination);
 
-    const headers = request.headers = request.headers || {};
+    const headers = (request.headers = request.headers || {});
 
     // force CORS if requested
     if (!request.crossDomain && !this.getHeader(headers, 'X-Requested-With')) {
@@ -213,7 +87,7 @@ export class AjaxSubscriber<T> extends Subscriber<Event> {
 
     // ensure content type is set
     let contentTypeHeader = this.getHeader(headers, 'Content-Type');
-    if (!contentTypeHeader && typeof request.body !== 'undefined' && !(isFormData(request.body))) {
+    if (!contentTypeHeader && typeof request.body !== 'undefined' && !isFormData(request.body)) {
       (headers as any)['Content-Type'] = 'application/x-www-form-urlencoded; charset=UTF-8';
     }
 
@@ -225,10 +99,10 @@ export class AjaxSubscriber<T> extends Subscriber<Event> {
 
   next(e: Event): void {
     this.done = true;
-    const { xhr, request, destination } = this;
-    let result;
+    const destination = this.destination as Subscriber<any>;
+    let result: AjaxResponse;
     try {
-      result = new AjaxResponse(e, xhr, request);
+      result = new AjaxResponse(e, this.xhr, this.request);
     } catch (err) {
       return destination.error(err);
     }
@@ -238,10 +112,10 @@ export class AjaxSubscriber<T> extends Subscriber<Event> {
   private send(): void {
     const {
       request,
-      request: { user, method, url, async, password, headers, body }
+      request: { user, method, url, async, password, headers, body },
     } = this;
     try {
-      const xhr = this.xhr = request.createXHR!();
+      const xhr = (this.xhr = request.createXHR!());
 
       // set up the events before open XHR
       // https://developer.mozilla.org/en/docs/Web/API/XMLHttpRequest/Using_XMLHttpRequest
@@ -295,7 +169,9 @@ export class AjaxSubscriber<T> extends Subscriber<Event> {
 
     switch (contentType) {
       case 'application/x-www-form-urlencoded':
-        return Object.keys(body).map(key => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`).join('&');
+        return Object.keys(body)
+          .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(body[key])}`)
+          .join('&');
       case 'application/json':
         return JSON.stringify(body);
       default:
@@ -324,105 +200,45 @@ export class AjaxSubscriber<T> extends Subscriber<Event> {
   private setupEvents(xhr: XMLHttpRequest, request: AjaxRequest) {
     const progressSubscriber = request.progressSubscriber;
 
-    function xhrTimeout(this: XMLHttpRequest, e: ProgressEvent): void {
-      const {subscriber, progressSubscriber, request } = (<any>xhrTimeout);
-      if (progressSubscriber) {
-        progressSubscriber.error(e);
-      }
+    xhr.ontimeout = (e: ProgressEvent) => {
+      progressSubscriber?.error?.(e);
       let error;
       try {
-        error = new AjaxTimeoutError(this, request); // TODO: Make betterer.
+        error = new AjaxTimeoutError(xhr, request); // TODO: Make betterer.
       } catch (err) {
         error = err;
       }
-      subscriber.error(error);
+      this.error(error);
+    };
+
+    if (progressSubscriber) {
+      xhr.upload.onprogress = (e: ProgressEvent) => {
+        progressSubscriber.next?.(e);
+      };
     }
-    xhr.ontimeout = xhrTimeout;
-    (<any>xhrTimeout).request = request;
-    (<any>xhrTimeout).subscriber = this;
-    (<any>xhrTimeout).progressSubscriber = progressSubscriber;
-    if (xhr.upload && 'withCredentials' in xhr) {
-      if (progressSubscriber) {
-        let xhrProgress: (e: ProgressEvent) => void;
-        xhrProgress = function(e: ProgressEvent) {
-          const { progressSubscriber } = (<any>xhrProgress);
-          progressSubscriber.next(e);
-        };
-        if (typeof XDomainRequest === 'function') {
-          xhr.onprogress = xhrProgress;
-        } else {
-          xhr.upload.onprogress = xhrProgress;
-        }
-        (<any>xhrProgress).progressSubscriber = progressSubscriber;
-      }
-      let xhrError: (e: any) => void;
-      xhrError = function(this: XMLHttpRequest, e: ErrorEvent) {
-        const { progressSubscriber, subscriber, request } = (<any>xhrError);
-        if (progressSubscriber) {
-          progressSubscriber.error(e);
-        }
+
+    xhr.onerror = (e: ProgressEvent) => {
+      progressSubscriber?.error?.(e);
+      this.error(new AjaxError('ajax error', xhr, request));
+    };
+
+    xhr.onload = (e: ProgressEvent) => {
+      // 4xx and 5xx should error (https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html)
+      if (xhr.status < 400) {
+        progressSubscriber?.complete?.();
+        this.next(e);
+        this.complete();
+      } else {
+        progressSubscriber?.error?.(e);
         let error;
         try {
-          error = new AjaxError('ajax error', this, request);
+          error = new AjaxError('ajax error ' + xhr.status, xhr, request);
         } catch (err) {
           error = err;
         }
-        subscriber.error(error);
-      };
-      xhr.onerror = xhrError;
-      (<any>xhrError).request = request;
-      (<any>xhrError).subscriber = this;
-      (<any>xhrError).progressSubscriber = progressSubscriber;
-    }
-
-    function xhrReadyStateChange(this: XMLHttpRequest, e: Event) {
-      return;
-    }
-    xhr.onreadystatechange = xhrReadyStateChange;
-    (<any>xhrReadyStateChange).subscriber = this;
-    (<any>xhrReadyStateChange).progressSubscriber = progressSubscriber;
-    (<any>xhrReadyStateChange).request = request;
-
-    function xhrLoad(this: XMLHttpRequest, e: Event) {
-      const { subscriber, progressSubscriber, request } = (<any>xhrLoad);
-      if (this.readyState === 4) {
-        // normalize IE9 bug (http://bugs.jquery.com/ticket/1450)
-        let status: number = this.status === 1223 ? 204 : this.status;
-        let response: any = (this.responseType === 'text' ?  (
-          this.response || this.responseText) : this.response);
-
-        // fix status code when it is 0 (0 status is undocumented).
-        // Occurs when accessing file resources or on Android 4.1 stock browser
-        // while retrieving files from application cache.
-        if (status === 0) {
-          status = response ? 200 : 0;
-        }
-
-        // 4xx and 5xx should error (https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html)
-        if (status < 400) {
-          if (progressSubscriber) {
-            progressSubscriber.complete();
-          }
-          subscriber.next(e);
-          subscriber.complete();
-        } else {
-          if (progressSubscriber) {
-            progressSubscriber.error(e);
-          }
-          let error;
-          try {
-            error = new AjaxError('ajax error ' + status, this, request);
-          } catch (err) {
-            error = err;
-          }
-          subscriber.error(error);
-        }
+        this.error(error);
       }
-    }
-    xhr.onload = xhrLoad;
-    (<any>xhrLoad).subscriber = this;
-    (<any>xhrLoad).progressSubscriber = progressSubscriber;
-    (<any>xhrLoad).request = request;
+    };
   }
 
   unsubscribe() {
@@ -458,7 +274,7 @@ export class AjaxResponse {
   constructor(public originalEvent: Event, public xhr: XMLHttpRequest, public request: AjaxRequest) {
     this.status = xhr.status;
     this.responseType = xhr.responseType || request.responseType!;
-    this.response = parseXhrResponse(this.responseType, xhr);
+    this.response = getXHRResponse(xhr);
   }
 }
 
@@ -472,24 +288,38 @@ export type AjaxErrorNames = 'AjaxError' | 'AjaxTimeoutError';
  * @class AjaxError
  */
 export interface AjaxError extends Error {
-  /** @type {XMLHttpRequest} The XHR instance associated with the error */
+  /**
+   * The XHR instance associated with the error
+   */
   xhr: XMLHttpRequest;
 
-  /** @type {AjaxRequest} The AjaxRequest associated with the error */
+  /**
+   * The AjaxRequest associated with the error
+   */
   request: AjaxRequest;
 
-  /** @type {number} The HTTP status code */
+  /**
+   *The HTTP status code
+   */
   status: number;
 
-  /** @type {string} The responseType (e.g. 'json', 'arraybuffer', or 'xml') */
-  responseType: string;
+  /**
+   *The responseType (e.g. 'json', 'arraybuffer', or 'xml')
+   */
+  responseType: XMLHttpRequestResponseType;
 
-  /** @type {string|ArrayBuffer|Document|object|any} The response data */
+  /**
+   * The response data
+   */
   response: any;
 }
 
 export interface AjaxErrorCtor {
-  new(message: string, xhr: XMLHttpRequest, request: AjaxRequest): AjaxError;
+  /**
+   * Internal use only. Do not manually create instances of this type.
+   * @internal
+   */
+  new (message: string, xhr: XMLHttpRequest, request: AjaxRequest): AjaxError;
 }
 
 const AjaxErrorImpl = (() => {
@@ -500,46 +330,65 @@ const AjaxErrorImpl = (() => {
     this.xhr = xhr;
     this.request = request;
     this.status = xhr.status;
-    this.responseType = xhr.responseType || request.responseType;
-    this.response = parseXhrResponse(this.responseType, xhr);
+    this.responseType = xhr.responseType;
+    let response: any;
+    try {
+      response = getXHRResponse(xhr);
+    } catch (err) {
+      response = xhr.responseText;
+    }
+    this.response = response;
     return this;
   }
   AjaxErrorImpl.prototype = Object.create(Error.prototype);
   return AjaxErrorImpl;
 })();
 
+/**
+ * Thrown when an error occurs during an AJAX request.
+ * This is only exported because it is useful for checking to see if an error
+ * is an `instanceof AjaxError`. DO NOT create new instances of `AjaxError` with
+ * the constructor.
+ *
+ * @class AjaxError
+ * @see ajax
+ */
 export const AjaxError: AjaxErrorCtor = AjaxErrorImpl as any;
 
-function parseJson(xhr: XMLHttpRequest) {
-  // HACK(benlesh): TypeScript shennanigans
-  // tslint:disable-next-line:no-any XMLHttpRequest is defined to always have 'response' inferring xhr as never for the else clause.
-  if ('response' in (xhr as any)) {
-    //IE does not support json as responseType, parse it internally
-    return xhr.responseType ? xhr.response : JSON.parse(xhr.response || xhr.responseText || 'null');
-  } else {
-    return JSON.parse((xhr as any).responseText || 'null');
+function getXHRResponse(xhr: XMLHttpRequest) {
+  switch (xhr.responseType) {
+    case 'json': {
+      if ('response' in xhr) {
+        return xhr.response;
+      } else {
+        // IE
+        const ieXHR: any = xhr;
+        return JSON.parse(ieXHR.responseText);
+      }
+    }
+    case 'document':
+      return xhr.responseXML;
+    case 'text':
+    default: {
+      if ('response' in xhr) {
+        return xhr.response;
+      } else {
+        // IE
+        const ieXHR: any = xhr;
+        return ieXHR.responseText;
+      }
+    }
   }
 }
 
-function parseXhrResponse(responseType: string, xhr: XMLHttpRequest) {
-  switch (responseType) {
-    case 'json':
-        return parseJson(xhr);
-      case 'xml':
-        return xhr.responseXML;
-      case 'text':
-      default:
-          // HACK(benlesh): TypeScript shennanigans
-          // tslint:disable-next-line:no-any XMLHttpRequest is defined to always have 'response' inferring xhr as never for the else sub-expression.
-          return  ('response' in (xhr as any)) ? xhr.response : xhr.responseText;
-  }
-}
-
-export interface AjaxTimeoutError extends AjaxError {
-}
+export interface AjaxTimeoutError extends AjaxError {}
 
 export interface AjaxTimeoutErrorCtor {
-  new(xhr: XMLHttpRequest, request: AjaxRequest): AjaxTimeoutError;
+  /**
+   * Internal use only. Do not manually create instances of this type.
+   * @internal
+   */
+  new (xhr: XMLHttpRequest, request: AjaxRequest): AjaxTimeoutError;
 }
 
 const AjaxTimeoutErrorImpl = (() => {
@@ -553,8 +402,13 @@ const AjaxTimeoutErrorImpl = (() => {
 })();
 
 /**
- * @see {@link ajax}
+ * Thrown when an AJAX request timesout. Not to be confused with {@link TimeoutError}.
+ *
+ * This is exported only because it is useful for checking to see if errors are an
+ * `instanceof AjaxTimeoutError`. DO NOT use the constructor to create an instance of
+ * this type.
  *
  * @class AjaxTimeoutError
+ * @see ajax
  */
 export const AjaxTimeoutError: AjaxTimeoutErrorCtor = AjaxTimeoutErrorImpl as any;

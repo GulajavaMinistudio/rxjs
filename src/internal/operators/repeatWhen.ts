@@ -4,12 +4,9 @@ import { Observable } from '../Observable';
 import { Subject } from '../Subject';
 import { Subscription } from '../Subscription';
 
-import { OuterSubscriber } from '../OuterSubscriber';
-import { InnerSubscriber } from '../InnerSubscriber';
-import { subscribeToResult } from '../util/subscribeToResult';
-
 import { MonoTypeOperatorFunction, TeardownLogic } from '../types';
 import { lift } from '../util/lift';
+import { SimpleOuterSubscriber, innerSubscribe, SimpleInnerSubscriber } from '../innerSubscribe';
 
 /**
  * Returns an Observable that mirrors the source Observable with the exception of a `complete`. If the source
@@ -41,100 +38,96 @@ import { lift } from '../util/lift';
  * @name repeatWhen
  */
 export function repeatWhen<T>(notifier: (notifications: Observable<void>) => Observable<any>): MonoTypeOperatorFunction<T> {
-  return (source: Observable<T>) => lift(source, new RepeatWhenOperator(notifier));
-}
+  return (source: Observable<T>) => lift(source, function (this: Subscriber<T>, source: Observable<T>) {
+    const subscriber = this;
+    const subscription = new Subscription();
+    let innerSub: Subscription | null;
+    let syncResub = false;
+    let completions$: Subject<void>;
+    let isNotifierComplete = false;
+    let isMainComplete = false;
 
-class RepeatWhenOperator<T> implements Operator<T, T> {
-  constructor(protected notifier: (notifications: Observable<void>) => Observable<any>) {
-  }
-
-  call(subscriber: Subscriber<T>, source: any): TeardownLogic {
-    return source.subscribe(new RepeatWhenSubscriber(subscriber, this.notifier, source));
-  }
-}
-
-/**
- * We need this JSDoc comment for affecting ESDoc.
- * @ignore
- * @extends {Ignored}
- */
-class RepeatWhenSubscriber<T, R> extends OuterSubscriber<T, R> {
-
-  private notifications: Subject<void> | null = null;
-  private retries: Observable<any> | null = null;
-  private retriesSubscription: Subscription | null | undefined = null;
-  private sourceIsBeingSubscribedTo: boolean = true;
-
-  constructor(destination: Subscriber<R>,
-              private notifier: (notifications: Observable<void>) => Observable<any>,
-              private source: Observable<T>) {
-    super(destination);
-  }
-
-  notifyNext(outerValue: T, innerValue: R,
-             outerIndex: number, innerIndex: number,
-             innerSub: InnerSubscriber<T, R>): void {
-    this.sourceIsBeingSubscribedTo = true;
-    this.source.subscribe(this);
-  }
-
-  notifyComplete(innerSub: InnerSubscriber<T, R>): void {
-    if (this.sourceIsBeingSubscribedTo === false) {
-      return super.complete();
-    }
-  }
-
-  complete() {
-    this.sourceIsBeingSubscribedTo = false;
-
-    if (!this.isStopped) {
-      if (!this.retries) {
-        this.subscribeToRetries();
+    /**
+     * Gets the subject to send errors through. If it doesn't exist,
+     * we know we need to setup the notifier.
+     */
+    const getCompletionSubject = () => {
+      if (!completions$) {
+        completions$ = new Subject();
+        let notifier$: Observable<any>;
+        // The notifier is a user-provided function, so we need to do
+        // some error handling.
+        try {
+          notifier$ = notifier(completions$);
+        } catch (err) {
+          subscriber.error(err);
+          // Returning null here will cause the code below to
+          // notice there's been a problem and skip error notification.
+          return null;
+        }
+        subscription.add(
+          notifier$.subscribe({
+            next: () => {
+              if (innerSub) {
+                subscribeForRepeatWhen();
+              } else {
+                // If we don't have an innerSub yet, that's because the inner subscription
+                // call hasn't even returned yet. We've arrived here synchronously.
+                // So we flag that we want to resub, such that we can ensure teardown
+                // happens before we resubscribe.
+                syncResub = true;
+              }
+            },
+            error: (err) => subscriber.error(err),
+            complete: () => {
+              isNotifierComplete = true;
+              if (isMainComplete) {
+                subscriber.complete();
+              }
+            },
+          })
+        );
       }
-      if (!this.retriesSubscription || this.retriesSubscription.closed) {
-        return super.complete();
+      return completions$;
+    };
+
+    const subscribeForRepeatWhen = () => {
+      isMainComplete = false;
+      innerSub = source.subscribe({
+        next: (value) => subscriber.next(value),
+        error: (err) => subscriber.error(err),
+        complete: () => {
+          isMainComplete = true;
+          if (isNotifierComplete) {
+            subscriber.complete();
+          } else {
+            const completions$ = getCompletionSubject();
+            if (completions$) {
+              // We have set up the notifier without error.
+              completions$.next();
+            }
+          }
+        },
+      });
+      if (syncResub) {
+        // Ensure that the inner subscription is torn down before
+        // moving on to the next subscription in the synchronous case.
+        // If we don't do this here, all inner subscriptions will not be
+        // torn down until the entire observable is done.
+        innerSub.unsubscribe();
+        innerSub = null;
+        // We may need to do this multiple times, so reset the flags.
+        syncResub = false;
+        // Resubscribe
+        subscribeForRepeatWhen();
+      } else {
+        subscription.add(innerSub);
       }
+    };
 
-      this._unsubscribeAndRecycle();
-      this.notifications!.next();
-    }
-  }
+    // Start the subscription
+    subscribeForRepeatWhen();
 
-  /** @deprecated This is an internal implementation detail, do not use. */
-  _unsubscribe() {
-    const { notifications, retriesSubscription } = this;
-    if (notifications) {
-      notifications.unsubscribe();
-      this.notifications = null;
-    }
-    if (retriesSubscription) {
-      retriesSubscription.unsubscribe();
-      this.retriesSubscription = null;
-    }
-    this.retries = null;
-  }
-
-  /** @deprecated This is an internal implementation detail, do not use. */
-  _unsubscribeAndRecycle(): Subscriber<T> {
-    const { _unsubscribe } = this;
-
-    this._unsubscribe = null!;
-    super._unsubscribeAndRecycle();
-    this._unsubscribe = _unsubscribe;
-
-    return this;
-  }
-
-  private subscribeToRetries() {
-    this.notifications = new Subject();
-    let retries;
-    try {
-      const { notifier } = this;
-      retries = notifier(this.notifications);
-    } catch (e) {
-      return super.complete();
-    }
-    this.retries = retries;
-    this.retriesSubscription = subscribeToResult(this, retries);
-  }
+    return subscription;
+  });
 }

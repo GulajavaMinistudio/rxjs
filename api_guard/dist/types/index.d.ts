@@ -1,6 +1,9 @@
 export declare const animationFrame: AnimationFrameScheduler;
 
-export declare function animationFrames(timestampProvider?: TimestampProvider): Observable<number>;
+export declare function animationFrames(timestampProvider?: TimestampProvider): Observable<{
+    timestamp: number;
+    elapsed: number;
+}>;
 
 export declare const animationFrameScheduler: AnimationFrameScheduler;
 
@@ -534,7 +537,6 @@ export declare class Subscriber<T> extends Subscription implements Observer<T> {
     protected _complete(): void;
     protected _error(err: any): void;
     protected _next(value: T): void;
-    _unsubscribeAndRecycle(): Subscriber<T>;
     complete(): void;
     error(err?: any): void;
     next(value?: T): void;
@@ -568,7 +570,8 @@ export interface TimeInterval<T> {
     value: T;
 }
 
-export interface TimeoutError extends Error {
+export interface TimeoutError<T = unknown, M = unknown> extends Error {
+    info: TimeoutInfo<T, M> | null;
 }
 
 export declare const TimeoutError: TimeoutErrorCtor;

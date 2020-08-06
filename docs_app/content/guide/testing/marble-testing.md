@@ -6,7 +6,7 @@
 
 We can test our _asynchronous_ RxJS code _synchronously_ and deterministically by virtualizing time using the TestScheduler. ASCII **marble diagrams** provide a visual way for us to represent the behavior of an Observable. We can use them to assert that a particular Observable behaves as expected, as well as to create [hot and cold Observables](https://medium.com/@benlesh/hot-vs-cold-observables-f8094ed53339) we can use as mocks.
 
-> At this time the TestScheduler can only be used to test code that uses timers, like `delay`, `debounceTime`, etc., (i.e. it uses `AsyncScheduler` with delays > 1). If the code consumes a Promise or does scheduling with `AsapScheduler`, `AnimationFrameScheduler`, etc., it cannot be reliably tested with `TestScheduler`, but instead should be tested more traditionally. See the [Known Issues](#known-issues) section for more details.
+> At this time, the TestScheduler can only be used to test code that uses RxJS schedulers - `AsyncScheduler`, etc. If the code consumes a Promise, for example, it cannot be reliably tested with `TestScheduler`, but instead should be tested more traditionally. See the [Known Issues](#known-issues) section for more details.
 
 ```ts
 import { TestScheduler } from 'rxjs/testing';
@@ -56,6 +56,17 @@ Although `run()` executes entirely synchronously, the helper functions inside yo
 - `expectObservable(actual: Observable<T>, subscriptionMarbles?: string).toBe(marbleDiagram: string, values?: object, error?: any)` - schedules an assertion for when the TestScheduler flushes. Give `subscriptionMarbles` as parameter to change the schedule of subscription and unsubscription. If you don't provide the `subscriptionMarbles` parameter it will subscribe at the beginning and never unsubscribe. Read below about subscription marble diagram.
 - `expectSubscriptions(actualSubscriptionLogs: SubscriptionLog[]).toBe(subscriptionMarbles: string)` - like `expectObservable` schedules an assertion for when the testScheduler flushes. Both `cold()` and `hot()` return an observable with a property `subscriptions` of type `SubscriptionLog[]`. Give `subscriptions` as parameter to `expectSubscriptions` to assert whether it matches the `subscriptionsMarbles` marble diagram given in `toBe()`. Subscription marble diagrams are slightly different than Observable marble diagrams. Read more below.
 - `flush()` - immediately starts virtual time. Not often used since `run()` will automatically flush for you when your callback returns, but in some cases you may wish to flush more than once or otherwise have more control.
+- `animate()` - specifies when requested animation frames will be 'painted'. `animate` accepts a marble diagram and each value emission in the diagram indicates when a 'paint' occurs - at which time, any queued `requestAnimationFrame` callbacks will be executed. Call `animate` at the beginning of your test and align the marble diagrams so that it's clear when the callbacks will be executed:
+
+    ```ts
+    testScheduler.run(helpers => {
+      const { animate, cold } = helpers;
+      animate('              ---x---x---x---x');
+      const requests = cold('-r-------r------')
+      /* ... */
+      const expected = '     ---a-------b----';
+    });
+    ```
 
 ## Marble syntax
 
@@ -231,9 +242,9 @@ In the above situation we need the observable stream to complete so that we can 
 
 ## Known issues
 
-### RxJS code that consumes Promises or uses any of the other schedulers (e.g. AsapScheduler) cannot be directly tested
+### RxJS code that consumes Promises cannot be directly tested
 
-If you have RxJS code that uses any other form of asynchronous scheduling other than `AsyncScheduler`, e.g. Promises, `AsapScheduler`, etc. you can't reliably use marble diagrams _for that particular code_. This is because those other scheduling methods won't be virtualized or known to TestScheduler.
+If you have RxJS code that uses asynchronous scheduling - e.g. Promises, etc. - you can't reliably use marble diagrams _for that particular code_. This is because those other scheduling methods won't be virtualized or known to TestScheduler.
 
 The solution is to test that code in isolation, with the traditional asynchronous testing methods of your testing framework. The specifics depend on your testing framework of choice, but here's a pseudo-code example:
 
