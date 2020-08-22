@@ -3,76 +3,21 @@ import { Observable, UnsubscriptionError, Subscription, merge } from 'rxjs';
 
 /** @test {Subscription} */
 describe('Subscription', () => {
-  describe('Subscription.add()', () => {
-    it('Should return self if the self is passed', () => {
-      const sub = new Subscription();
-      const ret = sub.add(sub);
-
-      expect(ret).to.equal(sub);
-    });
-
-    it('Should return Subscription.EMPTY if it is passed', () => {
-      const sub = new Subscription();
-      const ret = sub.add(Subscription.EMPTY);
-
-      expect(ret).to.equal(Subscription.EMPTY);
-    });
-
-    it('Should return Subscription.EMPTY if it is called with `void` value', () => {
-      const sub = new Subscription();
-      const ret = sub.add(undefined);
-      expect(ret).to.equal(Subscription.EMPTY);
-    });
-
-    it('Should return a new Subscription created with teardown function if it is passed a function', () => {
-      const sub = new Subscription();
-
+  describe('add()', () => {
+    it('should unsubscribe child subscriptions', () => {
+      const main = new Subscription();
+      
       let isCalled = false;
-      const ret = sub.add(function() {
+      const child = new Subscription(() => {
         isCalled = true;
       });
-      ret.unsubscribe();
+      main.add(child);
+      main.unsubscribe();
 
       expect(isCalled).to.equal(true);
     });
 
-    it('Should wrap the AnonymousSubscription and return a subscription that unsubscribes and removes it when unsubbed', () => {
-      const sub: any = new Subscription();
-      let called = false;
-      const arg = {
-        unsubscribe: () => called = true,
-      };
-      const ret = sub.add(arg);
-
-      expect(called).to.equal(false);
-      expect(sub._subscriptions.length).to.equal(1);
-      ret.unsubscribe();
-      expect(called).to.equal(true);
-      expect(sub._subscriptions.length).to.equal(0);
-    });
-
-    it('Should return the passed one if passed a AnonymousSubscription having not function `unsubscribe` member', () => {
-      const sub = new Subscription();
-      const arg = {
-        isUnsubscribed: false,
-        unsubscribe: undefined as any,
-      };
-      const ret = sub.add(arg as any);
-
-      expect(ret).to.equal(arg);
-    });
-
-    it('Should return the passed one if the self has been unsubscribed', () => {
-      const main = new Subscription();
-      main.unsubscribe();
-
-      const child = new Subscription();
-      const ret = main.add(child);
-
-      expect(ret).to.equal(child);
-    });
-
-    it('Should unsubscribe the passed one if the self has been unsubscribed', () => {
+    it('should unsubscribe child subscriptions if it has already been unsubscribed', () => {
       const main = new Subscription();
       main.unsubscribe();
 
@@ -84,9 +29,93 @@ describe('Subscription', () => {
 
       expect(isCalled).to.equal(true);
     });
+
+    it('should unsubscribe a teardown function that was passed', () => {
+      let isCalled = false;
+      const main = new Subscription();
+      main.add(() => {
+        isCalled = true;
+      });
+      main.unsubscribe();
+      expect(isCalled).to.be.true;
+    });
+
+    it('should unsubscribe a teardown function that was passed immediately if it has been unsubscribed', () => {
+      let isCalled = false;
+      const main = new Subscription();
+      main.unsubscribe();
+      main.add(() => {
+        isCalled = true;
+      });
+      expect(isCalled).to.be.true;
+    });
+
+    it('should unsubscribe an Unsubscribable when unsubscribed', () => {
+      let isCalled = false;
+      const main = new Subscription();
+      main.add({
+        unsubscribe() {
+          isCalled = true;
+        }
+      });
+      main.unsubscribe();
+      expect(isCalled).to.be.true;
+    });
+
+    it('should unsubscribe an Unsubscribable if it is already unsubscribed', () => {
+      let isCalled = false;
+      const main = new Subscription();
+      main.unsubscribe();
+      main.add({
+        unsubscribe() {
+          isCalled = true;
+        }
+      });
+      expect(isCalled).to.be.true;
+    });
   });
 
-  describe('Subscription.unsubscribe()', () => {
+  describe('remove()', () => {
+    it('should remove added Subscriptions', () => {
+      let isCalled = false;
+      const main = new Subscription();
+      const child = new Subscription(() => {
+        isCalled = true;
+      });
+      main.add(child);
+      main.remove(child);
+      main.unsubscribe();
+      expect(isCalled).to.be.false;
+    });
+
+    it('should remove added functions', () => {
+      let isCalled = false;
+      const main = new Subscription();
+      const teardown = () => {
+        isCalled = true;
+      };
+      main.add(teardown);
+      main.remove(teardown);
+      main.unsubscribe();
+      expect(isCalled).to.be.false;
+    });
+
+    it('should remove added unsubscribables', () => {
+      let isCalled = false;
+      const main = new Subscription();
+      const unsubscribable = {
+        unsubscribe() {
+          isCalled = true;
+        }
+      }
+      main.add(unsubscribable);
+      main.remove(unsubscribable);
+      main.unsubscribe();
+      expect(isCalled).to.be.false;
+    });
+  });
+
+  describe('unsubscribe()', () => {
     it('Should unsubscribe from all subscriptions, when some of them throw', done => {
       const tearDowns: number[] = [];
 

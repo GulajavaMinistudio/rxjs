@@ -545,11 +545,10 @@ export declare class Subscriber<T> extends Subscription implements Observer<T> {
 }
 
 export declare class Subscription implements SubscriptionLike {
-    protected _parentOrParents: Subscription | Subscription[] | null;
     closed: boolean;
     constructor(unsubscribe?: () => void);
-    add(teardown: TeardownLogic): Subscription;
-    remove(subscription: Subscription): void;
+    add(teardown: TeardownLogic): void;
+    remove(teardown: Exclude<TeardownLogic, void>): void;
     unsubscribe(): void;
     static EMPTY: Subscription;
 }
@@ -561,7 +560,7 @@ export interface SubscriptionLike extends Unsubscribable {
 
 export declare type Tail<X extends any[]> = ((...args: X) => any) extends ((arg: any, ...rest: infer U) => any) ? U : never;
 
-export declare type TeardownLogic = Unsubscribable | Function | void;
+export declare type TeardownLogic = Subscription | Unsubscribable | Function | void;
 
 export declare function throwError(errorFactory: () => any): Observable<never>;
 export declare function throwError(error: any): Observable<never>;
@@ -623,7 +622,6 @@ export declare class VirtualAction<T> extends AsyncAction<T> {
     protected recycleAsyncId(scheduler: VirtualTimeScheduler, id?: any, delay?: number): any;
     protected requestAsyncId(scheduler: VirtualTimeScheduler, id?: any, delay?: number): any;
     schedule(state?: T, delay?: number): Subscription;
-    static sortActions<T>(a: VirtualAction<T>, b: VirtualAction<T>): 1 | 0 | -1;
 }
 
 export declare class VirtualTimeScheduler extends AsyncScheduler {
