@@ -124,11 +124,10 @@ export class Subscriber<T> extends Subscription implements Observer<T> {
   }
 
   unsubscribe(): void {
-    if (this.closed) {
-      return;
+    if (!this.closed) {
+      this.isStopped = true;
+      super.unsubscribe();
     }
-    this.isStopped = true;
-    super.unsubscribe();
   }
 
   protected _next(value: T): void {
@@ -153,135 +152,102 @@ export class Subscriber<T> extends Subscription implements Observer<T> {
  */
 export class SafeSubscriber<T> extends Subscriber<T> {
 
-  private _context: any;
-
   constructor(private _parentSubscriber: Subscriber<T>,
               observerOrNext?: PartialObserver<T> | ((value: T) => void) | null,
               error?: ((e?: any) => void) | null,
               complete?: (() => void) | null) {
     super();
-
     let next: ((value: T) => void) | undefined;
-    let context: any = this;
 
     if (isFunction(observerOrNext)) {
-      next = (<((value: T) => void)> observerOrNext);
+      next = observerOrNext;
     } else if (observerOrNext) {
-      next = (<PartialObserver<T>> observerOrNext).next;
-      error = (<PartialObserver<T>> observerOrNext).error;
-      complete = (<PartialObserver<T>> observerOrNext).complete;
+      next = observerOrNext.next;
+      error = observerOrNext.error;
+      complete = observerOrNext.complete;
       if (observerOrNext !== emptyObserver) {
-        context = Object.create(observerOrNext);
+        let context: any;
+        if (config.useDeprecatedNextContext) {
+          context = Object.create(observerOrNext);
+          context.unsubscribe = this.unsubscribe.bind(this);
+        } else {
+          context = observerOrNext;
+        }
+        next = next && next.bind(context);
+        error = error && error.bind(context);
+        complete = complete && complete.bind(context);
         if (isSubscription(observerOrNext)) {
           observerOrNext.add(this.unsubscribe.bind(this));
         }
-        context.unsubscribe = this.unsubscribe.bind(this);
       }
     }
 
-    this._context = context;
     this._next = next!;
     this._error = error!;
     this._complete = complete!;
   }
 
-  next(value?: T): void {
+  next(value: T): void {
     if (!this.isStopped && this._next) {
-      const { _parentSubscriber } = this;
-      if (!config.useDeprecatedSynchronousErrorHandling || !_parentSubscriber.syncErrorThrowable) {
-        this.__tryOrUnsub(this._next, value);
-      } else if (this.__tryOrSetError(_parentSubscriber, this._next, value)) {
-        this.unsubscribe();
+      try {
+        this._next(value);
+      } catch (err) {
+        this._throw(err);
       }
     }
   }
 
-  error(err?: any): void {
+  error(err: any): void {
     if (!this.isStopped) {
-      const { _parentSubscriber } = this;
-      const { useDeprecatedSynchronousErrorHandling } = config;
       if (this._error) {
-        if (!useDeprecatedSynchronousErrorHandling || !_parentSubscriber.syncErrorThrowable) {
-          this.__tryOrUnsub(this._error, err);
-          this.unsubscribe();
-        } else {
-          this.__tryOrSetError(_parentSubscriber, this._error, err);
-          this.unsubscribe();
+        try {
+          this._error(err);
+        } catch (err) {
+          this._throw(err);
+          return;
         }
-      } else if (!_parentSubscriber.syncErrorThrowable) {
         this.unsubscribe();
-        if (useDeprecatedSynchronousErrorHandling) {
-          throw err;
-        }
-        hostReportError(err);
       } else {
-        if (useDeprecatedSynchronousErrorHandling) {
-          _parentSubscriber.syncErrorValue = err;
-          _parentSubscriber.syncErrorThrown = true;
-        } else {
-          hostReportError(err);
-        }
-        this.unsubscribe();
+        this._throw(err);
       }
+    }
+  }
+
+  private _throw(err: any) {
+    this.unsubscribe();
+    if (config.useDeprecatedSynchronousErrorHandling) {
+      const { _parentSubscriber } = this;
+      if (_parentSubscriber?.syncErrorThrowable) {
+        _parentSubscriber.syncErrorValue = err;
+        _parentSubscriber.syncErrorThrown = true;
+      } else {
+        throw err;
+      }
+    } else {
+      hostReportError(err);
     }
   }
 
   complete(): void {
     if (!this.isStopped) {
-      const { _parentSubscriber } = this;
       if (this._complete) {
-        const wrappedComplete = () => this._complete.call(this._context);
-
-        if (!config.useDeprecatedSynchronousErrorHandling || !_parentSubscriber.syncErrorThrowable) {
-          this.__tryOrUnsub(wrappedComplete);
-          this.unsubscribe();
-        } else {
-          this.__tryOrSetError(_parentSubscriber, wrappedComplete);
-          this.unsubscribe();
+        try {
+          this._complete();
+        } catch (err) {
+          this._throw(err);
+          return;
         }
-      } else {
-        this.unsubscribe();
       }
-    }
-  }
-
-  private __tryOrUnsub(fn: Function, value?: any): void {
-    try {
-      fn.call(this._context, value);
-    } catch (err) {
       this.unsubscribe();
-      if (config.useDeprecatedSynchronousErrorHandling) {
-        throw err;
-      } else {
-        hostReportError(err);
-      }
     }
   }
 
-  private __tryOrSetError(parent: Subscriber<T>, fn: Function, value?: any): boolean {
-    if (!config.useDeprecatedSynchronousErrorHandling) {
-      throw new Error('bad call');
+  unsubscribe() {
+    if (!this.closed) {
+      const { _parentSubscriber } = this;
+      this._parentSubscriber = null!;
+      _parentSubscriber.unsubscribe();
+      super.unsubscribe();
     }
-    try {
-      fn.call(this._context, value);
-    } catch (err) {
-      if (config.useDeprecatedSynchronousErrorHandling) {
-        parent.syncErrorValue = err;
-        parent.syncErrorThrown = true;
-        return true;
-      } else {
-        hostReportError(err);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /** @internal This is an internal implementation detail, do not use. */
-  _unsubscribe(): void {
-    const { _parentSubscriber } = this;
-    this._context = null;
-    this._parentSubscriber = null!;
-    _parentSubscriber.unsubscribe();
   }
 }

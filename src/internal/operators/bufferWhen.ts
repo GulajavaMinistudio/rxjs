@@ -1,3 +1,4 @@
+/** @prettier */
 import { Operator } from '../Operator';
 import { Subscriber } from '../Subscriber';
 import { Observable } from '../Observable';
@@ -54,20 +55,13 @@ export function bufferWhen<T>(closingSelector: () => Observable<any>): OperatorF
 }
 
 class BufferWhenOperator<T> implements Operator<T, T[]> {
-
-  constructor(private closingSelector: () => Observable<any>) {
-  }
+  constructor(private closingSelector: () => Observable<any>) {}
 
   call(subscriber: Subscriber<T[]>, source: any): any {
     return source.subscribe(new BufferWhenSubscriber(subscriber, this.closingSelector));
   }
 }
 
-/**
- * We need this JSDoc comment for affecting ESDoc.
- * @ignore
- * @extends {Ignored}
- */
 class BufferWhenSubscriber<T> extends SimpleOuterSubscriber<T, any> {
   private buffer: T[] | undefined;
   private subscribing: boolean = false;
@@ -90,10 +84,12 @@ class BufferWhenSubscriber<T> extends SimpleOuterSubscriber<T, any> {
     super._complete();
   }
 
-  /** @deprecated This is an internal implementation detail, do not use. */
-  _unsubscribe() {
-    this.buffer = null!;
-    this.subscribing = false;
+  unsubscribe() {
+    if (!this.closed) {
+      this.buffer = null!;
+      this.subscribing = false;
+      super.unsubscribe();
+    }
   }
 
   notifyNext(): void {

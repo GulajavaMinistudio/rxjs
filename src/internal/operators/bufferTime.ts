@@ -139,6 +139,7 @@ class BufferTimeSubscriber<T> extends Subscriber<T> {
               private maxBufferSize: number,
               private scheduler: SchedulerLike) {
     super(destination);
+
     const context = this.openContext();
     this.timespanOnly = bufferCreationInterval == null || bufferCreationInterval < 0;
     if (this.timespanOnly) {
@@ -184,9 +185,11 @@ class BufferTimeSubscriber<T> extends Subscriber<T> {
     super._complete();
   }
 
-  /** @deprecated This is an internal implementation detail, do not use. */
-  _unsubscribe() {
-    this.contexts = null!;
+  unsubscribe() {
+    if (!this.closed) {
+      this.contexts = null!;
+      super.unsubscribe();
+    }
   }
 
   protected onBufferFull(context: Context<T>) {
