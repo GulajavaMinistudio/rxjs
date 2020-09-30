@@ -1,8 +1,11 @@
 /** @prettier */
 import { Observable } from '../Observable';
 import { ObservableInput, ObservedValueOf } from '../types';
-import { Subscription } from '../Subscription';
-import { from } from './from';
+import { innerFrom } from './from';
+import { argsOrArgArray } from '../util/argsOrArgArray';
+import { EMPTY } from './empty';
+import { OperatorSubscriber } from '../operators/OperatorSubscriber';
+import { popResultSelector } from '../util/args';
 
 /* tslint:disable:max-line-length */
 /** @deprecated resultSelector is no longer supported, pipe to map instead */
@@ -178,52 +181,69 @@ export function zip<R>(...observables: Array<ObservableInput<any> | ((...values:
 export function zip<O extends ObservableInput<any>, R>(
   ...sources: Array<O | ((...values: ObservedValueOf<O>[]) => R)>
 ): Observable<ObservedValueOf<O>[] | R> {
-  let resultSelector: ((...ys: Array<any>) => R) | undefined = undefined;
-  if (typeof sources[sources.length - 1] === 'function') {
-    resultSelector = sources.pop() as typeof resultSelector;
-  }
+  const resultSelector = popResultSelector(sources);
 
-  return new Observable<ObservedValueOf<O>[]>((subscriber) => {
-    const buffers: ObservedValueOf<O>[][] = sources.map(() => []);
-    const completed = sources.map(() => false);
-    const subscription = new Subscription();
+  sources = argsOrArgArray(sources);
 
-    const tryEmit = () => {
-      if (buffers.every((buffer) => buffer.length > 0)) {
-        let result: any = buffers.map((buffer) => buffer.shift()!);
-        if (resultSelector) {
-          try {
-            result = resultSelector(...result);
-          } catch (err) {
-            subscriber.error(err);
-            return;
-          }
+  return sources.length
+    ? new Observable<ObservedValueOf<O>[]>((subscriber) => {
+        // A collection of buffers of values from each source.
+        // Keyed by the same index with which the sources were passed in.
+        let buffers: ObservedValueOf<O>[][] = sources.map(() => []);
+
+        // An array of flags of whether or not the sources have completed.
+        // This is used to check to see if we should complete the result.
+        // Keyed by the same index with which the sources were passed in.
+        let completed = sources.map(() => false);
+
+        // When everything is done, release the arrays above.
+        subscriber.add(() => {
+          buffers = completed = null!;
+        });
+
+        // Loop over our sources and subscribe to each one. The index `i` is
+        // especially important here, because we use it in closures below to
+        // access the related buffers and completion properties
+        for (let i = 0; !subscriber.closed && i < sources.length; i++) {
+          innerFrom(sources[i]).subscribe(
+            new OperatorSubscriber(
+              subscriber,
+              (value) => {
+                buffers[i].push(value);
+                // if every buffer has at least one value in it, then we
+                // can shift out the oldest value from each buffer and emit
+                // them as an array.
+                if (buffers.every((buffer) => buffer.length)) {
+                  let result: any = buffers.map((buffer) => buffer.shift()!);
+                  // Emit the array. If theres' a result selector, use that.
+                  subscriber.next(resultSelector ? resultSelector(...result) : result);
+                  // If any one of the sources is both complete and has an empty buffer
+                  // then we complete the result. This is because we cannot possibly have
+                  // any more values to zip together.
+                  if (buffers.some((buffer, i) => !buffer.length && completed[i])) {
+                    subscriber.complete();
+                  }
+                }
+              },
+              // Any error is passed through the result.
+              undefined,
+              () => {
+                // This source completed. Mark it as complete so we can check it later
+                // if we have to.
+                completed[i] = true;
+                // But, if this complete source has nothing in its buffer, then we
+                // can complete the result, because we can't possibly have any more
+                // values from this to zip together with the oterh values.
+                !buffers[i].length && subscriber.complete();
+              }
+            )
+          );
         }
-        subscriber.next(result);
-        if (buffers.some((buffer, i) => buffer.length === 0 && completed[i])) {
-          subscriber.complete();
-        }
-      }
-    };
 
-    for (let i = 0; !subscriber.closed && i < sources.length; i++) {
-      const source = from(sources[i]);
-      subscription.add(
-        source.subscribe({
-          next: (value) => {
-            buffers[i].push(value);
-            tryEmit();
-          },
-          error: (err) => subscriber.error(err),
-          complete: () => {
-            completed[i] = true;
-            if (buffers[i].length === 0) {
-              subscriber.complete();
-            }
-          },
-        })
-      );
-    }
-    return subscription;
-  });
+        // When everything is done, release the arrays above.
+        return () => {
+          buffers = completed = null!;
+        };
+      })
+    : EMPTY;
 }

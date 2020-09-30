@@ -1,11 +1,11 @@
 /** @prettier */
 import { combineLatestInit } from '../observable/combineLatest';
-import { Observable } from '../Observable';
 import { ObservableInput, OperatorFunction, ObservedValueTupleFromArray, Cons } from '../types';
-import { lift } from '../util/lift';
-import { Subscriber } from '../Subscriber';
+import { operate } from '../util/lift';
 import { argsOrArgArray } from '../util/argsOrArgArray';
 import { mapOneOrManyArgs } from '../util/mapOneOrManyArgs';
+import { pipe } from '../util/pipe';
+import { popResultSelector } from '../util/args';
 
 /* tslint:disable:max-line-length */
 /** @deprecated use {@link combineLatestWith} */
@@ -82,18 +82,12 @@ export function combineLatest<T, TOther, R>(
  * @deprecated Deprecated, use {@link combineLatestWith} or static {@link combineLatest}
  */
 export function combineLatest<T, R>(...args: (ObservableInput<any> | ((...values: any[]) => R))[]): OperatorFunction<T, unknown> {
-  let project: ((...values: Array<any>) => R) | undefined = undefined;
-  if (typeof args[args.length - 1] === 'function') {
-    project = args.pop() as (...values: any[]) => R;
-  }
-
-  return (source: Observable<T>) => {
-    const result = lift(source, function (this: Subscriber<any>, source: Observable<T>) {
-      return combineLatestInit([source, ...argsOrArgArray(args)])(this);
-    });
-
-    return project ? result.pipe(mapOneOrManyArgs(project)) : result;
-  };
+  const resultSelector = popResultSelector(args);
+  return resultSelector
+    ? pipe(combineLatest(...args), mapOneOrManyArgs(resultSelector))
+    : operate((source, subscriber) => {
+        combineLatestInit([source, ...argsOrArgArray(args)])(subscriber);
+      });
 }
 
 /**

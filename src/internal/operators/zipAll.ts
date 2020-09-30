@@ -1,33 +1,21 @@
-import { Observable } from '../Observable';
+/** @prettier */
 import { OperatorFunction, ObservableInput } from '../types';
-import { lift } from '../util/lift';
-import { Subscriber } from '../Subscriber';
 import { zip } from '../observable/zip';
+import { joinAllInternals } from './joinAllInternals';
 
+/**
+ * Collects all observable inner sources from the source, once the source completes,
+ * it will subscribe to all inner sources, combining their values by index and emitting
+ * them.
+ *
+ * {@see zipWith}
+ * {@see zip}
+ */
 export function zipAll<T>(): OperatorFunction<ObservableInput<T>, T[]>;
 export function zipAll<T>(): OperatorFunction<any, T[]>;
 export function zipAll<T, R>(project: (...values: T[]) => R): OperatorFunction<ObservableInput<T>, R>;
 export function zipAll<R>(project: (...values: Array<any>) => R): OperatorFunction<any, R>;
 
-export function zipAll<T, R>(project?: (...values: T[]) => R): OperatorFunction<ObservableInput<T>, R> {
-  return (source: Observable<ObservableInput<T>>) => lift(source, function zipAllOperator(this: Subscriber<R|T[]>, source: Observable<ObservableInput<T>>) {
-    const subscriber = this;
-    const sources: ObservableInput<T>[] = [];
-    subscriber.add(
-      source.subscribe({
-        next: source => sources.push(source),
-        error: err => subscriber.error(err),
-        complete: () => {
-          if (sources.length > 0) {
-            const args = project ? [...sources, project] : sources;
-            subscriber.add(
-              zip(...args).subscribe(subscriber)
-            )
-          } else {
-            subscriber.complete();
-          }
-        }
-      })
-    )
-  });
+export function zipAll<T, R>(project?: (...values: T[]) => R) {
+  return joinAllInternals(zip, project);
 }

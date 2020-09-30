@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { TestScheduler } from 'rxjs/testing';
-import { asyncScheduler, of, from, Observer, observable, Subject } from 'rxjs';
+import { asyncScheduler, of, from, Observer, observable, Subject, noop } from 'rxjs';
 import { first, concatMap, delay } from 'rxjs/operators';
 
 // tslint:disable:no-any
@@ -149,7 +149,8 @@ describe('from', () => {
         );
       expect(nextInvoked).to.equal(false);
     });
-    it(`should accept a function`, (done) => {
+
+    it(`should accept a function that implements [Symbol.observable]`, (done) => {
       const subject = new Subject<any>();
       const handler: any = (arg: any) => subject.next(arg);
       handler[observable] = () => subject;
@@ -170,5 +171,52 @@ describe('from', () => {
       );
       handler('x');
     });
+
+    it('should accept a thennable that happens to have a subscribe method', (done) => {
+      // There was an issue with our old `isPromise` check that caused this to fail
+      const input = Promise.resolve('test');
+      (input as any).subscribe = noop;
+      from(input).subscribe({
+        next: x => {
+          expect(x).to.equal('test');
+          done();
+        }
+      })
+    })
   }
+
+  it('should appropriately handle errors from an iterator', () => {
+    const erroringIterator = (function* () {
+      for (let i = 0; i < 5; i++) {
+        if (i === 3) {
+          throw new Error('bad');
+        }
+        yield i;
+      }
+    })();
+
+    const results: any[] = [];
+
+    from(erroringIterator).subscribe({
+      next: x => results.push(x),
+      error: err => results.push(err.message)
+    });
+
+    expect(results).to.deep.equal([0, 1, 2, 'bad']);
+  });
+
+  it('should execute the finally block of a generator', () => {
+    let finallyExecuted = false;
+    const generator = (function* () {
+      try {
+        yield 'hi';
+      } finally {
+        finallyExecuted = true;
+      }
+    })();
+
+    from(generator).subscribe();
+
+    expect(finallyExecuted).to.be.true;
+  });
 });

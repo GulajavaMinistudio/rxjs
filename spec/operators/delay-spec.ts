@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { observableMatcher } from '../helpers/observableMatcher';
 
 /** @test {delay} */
-describe('delay operator', () => {
+describe('delay', () => {
   let testScheduler: TestScheduler;
 
   beforeEach(() => {
@@ -27,12 +27,26 @@ describe('delay operator', () => {
     });
   });
 
-  it('should delay by absolute time period', () => {
+  it('should not delay at all if the delay number is negative', () => {
     testScheduler.run(({ hot, expectObservable, expectSubscriptions }) => {
-      const e1 = hot('  --a--b--|   ');
-      const t = 3; //     ---|
-      const expected = '-----a--(b|)';
-      const subs = '    ^-------!   ';
+      const e1 =   hot('---a--b--|');
+      const t = -1;
+      const expected = '---a--b--|';
+      const subs =     '^--------!';
+
+      const result = e1.pipe(delay(t, testScheduler));
+
+      expectObservable(result).toBe(expected);
+      expectSubscriptions(e1.subscriptions).toBe(subs);
+    });
+  });
+
+  it('should delay by absolute time period', () => {
+    testScheduler.run(({ hot, time, expectObservable, expectSubscriptions }) => {
+      const e1 = hot('  --a--a---a----a----a------------b---b---b---b--|');
+      const t = time('  --------------------|');
+      const expected = '--------------------(aaaaa)-----b---b---b---b--|';
+      const subs = '    ^----------------------------------------------!';
 
       const absoluteDelay = new Date(testScheduler.now() + t);
       const result = e1.pipe(delay(absoluteDelay, testScheduler));
@@ -42,12 +56,27 @@ describe('delay operator', () => {
     });
   });
 
-  it('should delay by absolute time period after subscription', () => {
+  it('should not delay at all if the absolute time is in the past', () => {
     testScheduler.run(({ hot, expectObservable, expectSubscriptions }) => {
-      const e1 = hot('  ---^--a--b--|   ');
-      const t = 3; //         ---|
-      const expected = '   ------a--(b|)';
-      const subs = '       ^--------!   ';
+      const e1 = hot('  --a--a---a----a----a------------b---b---b---b--|');
+      const t = -10000;
+      const expected = '--a--a---a----a----a------------b---b---b---b--|';
+      const subs = '    ^----------------------------------------------!';
+
+      const absoluteDelay = new Date(testScheduler.now() + t);
+      const result = e1.pipe(delay(absoluteDelay, testScheduler));
+
+      expectObservable(result).toBe(expected);
+      expectSubscriptions(e1.subscriptions).toBe(subs);
+    });
+  });
+
+  it('should delay by absolute time period after source ends', () => {
+    testScheduler.run(({ hot, time, expectObservable, expectSubscriptions }) => {
+      const e1 = hot('  ---^--a-----a---a-----a---|');
+      const t = time('     ------------------------------|');
+      const expected = '   ------------------------------(aaaa|)';
+      const subs = '       ^----------------------!   ';
 
       const absoluteDelay = new Date(testScheduler.now() + t);
       const result = e1.pipe(delay(absoluteDelay, testScheduler));
@@ -71,12 +100,12 @@ describe('delay operator', () => {
     });
   });
 
-  it('should raise error when source raises error', () => {
-    testScheduler.run(({ hot, expectObservable, expectSubscriptions }) => {
-      const e1 = hot('  --a--b--#');
-      const t = 3; //     ---|
-      const expected = '-----a--#';
-      const subs = '    ^-------!';
+  it('should raise error when source raises error before absolute delay fires', () => {
+    testScheduler.run(({ hot, time, expectObservable, expectSubscriptions }) => {
+      const e1 = hot('  --a--a---a-----#');
+      const t = time('  --------------------|')
+      const expected = '---------------#';
+      const subs = '    ^--------------!';
 
       const absoluteDelay = new Date(testScheduler.now() + t);
       const result = e1.pipe(delay(absoluteDelay, testScheduler));
@@ -86,12 +115,12 @@ describe('delay operator', () => {
     });
   });
 
-  it('should raise error when source raises error after subscription', () => {
-    testScheduler.run(({ hot, expectObservable, expectSubscriptions }) => {
-      const e1 = hot('  ---^---a---b---#');
-      const t = 3; //          ---|
-      const expected = '   -------a---b#';
-      const e1Sub = '      ^-----------!';
+  it('should raise error when source raises error after absolute delay fires', () => {
+    testScheduler.run(({ hot, time, expectObservable, expectSubscriptions }) => {
+      const e1 = hot('  ---^---a--a---a---a--------b---b---b--#');
+      const t = time('     -----------------|');
+      const expected = '   -----------------(aaaa)-b---b---b--#';
+      const e1Sub = '      ^----------------------------------!';
 
       const absoluteDelay = new Date(testScheduler.now() + t);
       const result = e1.pipe(delay(absoluteDelay, testScheduler));

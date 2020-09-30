@@ -1,3 +1,4 @@
+/** @prettier */
 import { scheduleObservable } from './scheduleObservable';
 import { schedulePromise } from './schedulePromise';
 import { scheduleArray } from './scheduleArray';
@@ -9,6 +10,8 @@ import { isIterable } from '../util/isIterable';
 import { ObservableInput, SchedulerLike } from '../types';
 import { Observable } from '../Observable';
 import { scheduleAsyncIterable } from './scheduleAsyncIterable';
+import { isAsyncIterable } from '../util/isAsyncIterable';
+import { createInvalidObservableTypeError } from '../util/throwUnobservableError';
 
 /**
  * Converts from a common {@link ObservableInput} type to an observable where subscription and emissions
@@ -25,15 +28,19 @@ export function scheduled<T>(input: ObservableInput<T>, scheduler: SchedulerLike
   if (input != null) {
     if (isInteropObservable(input)) {
       return scheduleObservable(input, scheduler);
-    } else if (isPromise(input)) {
-      return schedulePromise(input, scheduler);
-    } else if (isArrayLike(input)) {
+    }
+    if (isArrayLike(input)) {
       return scheduleArray(input, scheduler);
-    }  else if (isIterable(input) || typeof input === 'string') {
+    }
+    if (isPromise(input)) {
+      return schedulePromise(input, scheduler);
+    }
+    if (isAsyncIterable(input)) {
+      return scheduleAsyncIterable(input, scheduler);
+    }
+    if (isIterable(input)) {
       return scheduleIterable(input, scheduler);
-    } else if (Symbol && Symbol.asyncIterator && typeof (input as any)[Symbol.asyncIterator] === 'function') {
-      return scheduleAsyncIterable(input as any, scheduler);
     }
   }
-  throw new TypeError((input !== null && typeof input || input) + ' is not observable');
+  throw createInvalidObservableTypeError(input);
 }

@@ -1,15 +1,8 @@
-import { async } from '../scheduler/async';
-import { isValidDate } from '../util/isDate';
-import { Operator } from '../Operator';
-import { Subscriber } from '../Subscriber';
-import { Observable } from '../Observable';
-import {
-  MonoTypeOperatorFunction,
-  SchedulerAction,
-  SchedulerLike,
-  TeardownLogic
-} from '../types';
-import { lift } from '../util/lift';
+/** @prettier */
+import { asyncScheduler } from '../scheduler/async';
+import { MonoTypeOperatorFunction, SchedulerLike } from '../types';
+import { delayWhen } from './delayWhen';
+import { timer } from '../observable/timer';
 
 /**
  * Delays the emission of items from the source Observable by a given timeout or
@@ -59,96 +52,7 @@ import { lift } from '../util/lift';
  * @return {Observable} An Observable that delays the emissions of the source
  * Observable by the specified timeout or Date.
  */
-export function delay<T>(delay: number | Date, scheduler: SchedulerLike = async): MonoTypeOperatorFunction<T> {
-  const delayFor = isValidDate(delay) ? +delay - scheduler.now() : Math.abs(delay);
-  return (source: Observable<T>) => lift(source, new DelayOperator(delayFor, scheduler));
-}
-
-class DelayOperator<T> implements Operator<T, T> {
-  constructor(private delay: number, private scheduler: SchedulerLike) {}
-
-  call(subscriber: Subscriber<T>, source: any): TeardownLogic {
-    return source.subscribe(new DelaySubscriber(subscriber, this.delay, this.scheduler));
-  }
-}
-
-interface DelayState<T> {
-  source: DelaySubscriber<T>;
-  destination: Subscriber<T>;
-  scheduler: SchedulerLike;
-}
-
-/**
- * We need this JSDoc comment for affecting ESDoc.
- * @ignore
- * @extends {Ignored}
- */
-class DelaySubscriber<T> extends Subscriber<T> {
-  private queue: Array<DelayMessage<T>> = [];
-  private active: boolean = false;
-
-  private static dispatch<T>(this: SchedulerAction<DelayState<T>>, state: DelayState<T>): void {
-    const source = state.source;
-    const queue = source.queue;
-    const scheduler = state.scheduler;
-    const destination = state.destination;
-
-    while (queue.length > 0 && queue[0].time - scheduler.now() <= 0) {
-      destination.next(queue.shift()!.value);
-    }
-
-    if (queue.length > 0) {
-      const delay = Math.max(0, queue[0].time - scheduler.now());
-      this.schedule(state, delay);
-    } else if (source.isStopped) {
-      source.destination.complete();
-      source.active = false;
-    } else {
-      this.unsubscribe();
-      source.active = false;
-    }
-  }
-
-  constructor(protected destination: Subscriber<T>, private delay: number, private scheduler: SchedulerLike) {
-    super(destination);
-  }
-
-  private _schedule(scheduler: SchedulerLike): void {
-    this.active = true;
-    const { destination } = this;
-    // TODO: The cast below seems like an issue with typings for SchedulerLike to me.
-    destination.add(
-      scheduler.schedule<DelayState<T>>(DelaySubscriber.dispatch as any, this.delay, {
-        source: this,
-        destination,
-        scheduler,
-      } as DelayState<T>)
-    );
-  }
-
-  protected _next(value: T) {
-    const scheduler = this.scheduler;
-    const message = new DelayMessage(scheduler.now() + this.delay, value);
-    this.queue.push(message);
-    if (this.active === false) {
-      this._schedule(scheduler);
-    }
-  }
-
-  protected _error(err: any) {
-    this.queue.length = 0;
-    this.destination.error(err);
-    this.unsubscribe();
-  }
-
-  protected _complete() {
-    if (this.queue.length === 0) {
-      this.destination.complete();
-    }
-    this.unsubscribe();
-  }
-}
-
-class DelayMessage<T> {
-  constructor(public readonly time: number, public readonly value: T) {}
+export function delay<T>(delay: number | Date, scheduler: SchedulerLike = asyncScheduler): MonoTypeOperatorFunction<T> {
+  const duration = timer(delay, scheduler);
+  return delayWhen(() => duration);
 }

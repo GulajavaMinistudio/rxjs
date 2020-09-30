@@ -1,23 +1,39 @@
-import { Observable } from '../Observable';
+/** @prettier */
 import { concat } from '../observable/concat';
-import { isScheduler } from '../util/isScheduler';
 import { MonoTypeOperatorFunction, OperatorFunction, SchedulerLike, ValueFromArray } from '../types';
+import { popScheduler } from '../util/args';
+import { operate } from '../util/lift';
 
 /* tslint:disable:max-line-length */
-/** @deprecated use {@link scheduled} and {@link concatAll} (e.g. `scheduled([[a, b, c], source], scheduler).pipe(concatAll())`) */
+/** @deprecated The scheduler argument is deprecated, use scheduled and concatAll. Details: https://rxjs.dev/deprecations/scheduler-argument */
 export function startWith<T>(scheduler: SchedulerLike): MonoTypeOperatorFunction<T>;
-/** @deprecated use {@link scheduled} and {@link concatAll} (e.g. `scheduled([[a, b, c], source], scheduler).pipe(concatAll())`) */
+/** @deprecated The scheduler argument is deprecated, use scheduled and concatAll. Details: https://rxjs.dev/deprecations/scheduler-argument */
 export function startWith<T, D>(v1: D, scheduler: SchedulerLike): OperatorFunction<T, T | D>;
-/** @deprecated use {@link scheduled} and {@link concatAll} (e.g. `scheduled([[a, b, c], source], scheduler).pipe(concatAll())`) */
+/** @deprecated The scheduler argument is deprecated, use scheduled and concatAll. Details: https://rxjs.dev/deprecations/scheduler-argument */
 export function startWith<T, D, E>(v1: D, v2: E, scheduler: SchedulerLike): OperatorFunction<T, T | D | E>;
-/** @deprecated use {@link scheduled} and {@link concatAll} (e.g. `scheduled([[a, b, c], source], scheduler).pipe(concatAll())`) */
+/** @deprecated The scheduler argument is deprecated, use scheduled and concatAll. Details: https://rxjs.dev/deprecations/scheduler-argument */
 export function startWith<T, D, E, F>(v1: D, v2: E, v3: F, scheduler: SchedulerLike): OperatorFunction<T, T | D | E | F>;
-/** @deprecated use {@link scheduled} and {@link concatAll} (e.g. `scheduled([[a, b, c], source], scheduler).pipe(concatAll())`) */
-export function startWith<T, D, E, F, G>(v1: D, v2:  E, v3: F, v4: G, scheduler: SchedulerLike): OperatorFunction<T, T | D | E | F | G>;
-/** @deprecated use {@link scheduled} and {@link concatAll} (e.g. `scheduled([[a, b, c], source], scheduler).pipe(concatAll())`) */
-export function startWith<T, D, E, F, G, H>(v1: D, v2: E, v3: F, v4: G, v5: H, scheduler: SchedulerLike): OperatorFunction<T, T | D | E | F | G | H>;
-/** @deprecated use {@link scheduled} and {@link concatAll} (e.g. `scheduled([[a, b, c], source], scheduler).pipe(concatAll())`) */
-export function startWith<T, D, E, F, G, H, I>(v1: D, v2: E, v3: F, v4: G, v5: H, v6: I, scheduler: SchedulerLike): OperatorFunction<T, T | D | E | F | G | H | I>;
+/** @deprecated The scheduler argument is deprecated, use scheduled and concatAll. Details: https://rxjs.dev/deprecations/scheduler-argument */
+export function startWith<T, D, E, F, G>(v1: D, v2: E, v3: F, v4: G, scheduler: SchedulerLike): OperatorFunction<T, T | D | E | F | G>;
+/** @deprecated The scheduler argument is deprecated, use scheduled and concatAll. Details: https://rxjs.dev/deprecations/scheduler-argument */
+export function startWith<T, D, E, F, G, H>(
+  v1: D,
+  v2: E,
+  v3: F,
+  v4: G,
+  v5: H,
+  scheduler: SchedulerLike
+): OperatorFunction<T, T | D | E | F | G | H>;
+/** @deprecated The scheduler argument is deprecated, use scheduled and concatAll. Details: https://rxjs.dev/deprecations/scheduler-argument */
+export function startWith<T, D, E, F, G, H, I>(
+  v1: D,
+  v2: E,
+  v3: F,
+  v4: G,
+  v5: H,
+  v6: I,
+  scheduler: SchedulerLike
+): OperatorFunction<T, T | D | E | F | G | H | I>;
 
 export function startWith<T, A extends any[] = T[]>(...values: A): OperatorFunction<T, T | ValueFromArray<A>>;
 
@@ -60,12 +76,11 @@ export function startWith<T, A extends any[] = T[]>(...values: A): OperatorFunct
  * @see concat
  */
 export function startWith<T, D>(...values: D[]): OperatorFunction<T, T | D> {
-  const scheduler = values[values.length - 1];
-  if (isScheduler(scheduler)) {
-    // deprecated path
-    values.pop();
-    return (source: Observable<T>) => concat(values, source, scheduler);
-  } else {
-    return (source: Observable<T>) => concat(values, source);
-  }
+  const scheduler = popScheduler(values);
+  return operate((source, subscriber) => {
+    // Here we can't pass `undefined` as a scheduler, becuase if we did, the
+    // code inside of `concat` would be confused by the `undefined`, and treat it
+    // like an invalid observable. So we have to split it two different ways.
+    (scheduler ? concat(values, source, scheduler) : concat(values, source)).subscribe(subscriber);
+  });
 }

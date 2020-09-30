@@ -1,14 +1,10 @@
-import {
-  PartialObserver,
-  ObservableNotification,
-  CompleteNotification,
-  NextNotification,
-  ErrorNotification,
-} from './types';
+/** @prettier */
+import { PartialObserver, ObservableNotification, CompleteNotification, NextNotification, ErrorNotification } from './types';
 import { Observable } from './Observable';
 import { EMPTY } from './observable/empty';
 import { of } from './observable/of';
 import { throwError } from './observable/throwError';
+import { isFunction } from './util/isFunction';
 
 // TODO: When this enum is removed, replace it with a type alias. See #4556.
 /**
@@ -75,17 +71,7 @@ export class Notification<T> {
    * @param observer The observer to notify.
    */
   observe(observer: PartialObserver<T>): void {
-    switch (this.kind) {
-      case 'N':
-        observer.next?.(this.value!);
-        break;
-      case 'E':
-        observer.error?.(this.error);
-        break;
-      case 'C':
-        observer.complete?.();
-        break;
-    }
+    return observeNotification(this as ObservableNotification<T>, observer);
   }
 
   /**
@@ -114,19 +100,9 @@ export class Notification<T> {
    * @deprecated remove in v8. use {@link Notification.prototype.observe} instead.
    */
   do(next: (value: T) => void): void;
-  do(next: (value: T) => void, error?: (err: any) => void, complete?: () => void): void {
-    const kind = this.kind;
-    switch (kind) {
-      case 'N':
-        next?.(this.value!);
-        break;
-      case 'E':
-        error?.(this.error);
-        break;
-      case 'C':
-        complete?.();
-        break;
-    }
+  do(nextHandler: (value: T) => void, errorHandler?: (err: any) => void, completeHandler?: () => void): void {
+    const { kind, value, error } = this;
+    return kind === 'N' ? nextHandler?.(value!) : kind === 'E' ? errorHandler?.(error) : completeHandler?.();
   }
 
   /**
@@ -165,11 +141,9 @@ export class Notification<T> {
    */
   accept(observer: PartialObserver<T>): void;
   accept(nextOrObserver: PartialObserver<T> | ((value: T) => void), error?: (err: any) => void, complete?: () => void) {
-    if (nextOrObserver && typeof (<PartialObserver<T>>nextOrObserver).next === 'function') {
-      return this.observe(<PartialObserver<T>>nextOrObserver);
-    } else {
-      return this.do(<(value: T) => void>nextOrObserver, error as any, complete as any);
-    }
+    return isFunction((nextOrObserver as any)?.next)
+      ? this.observe(nextOrObserver as PartialObserver<T>)
+      : this.do(nextOrObserver as (value: T) => void, error as any, complete as any);
   }
 
   /**
@@ -181,16 +155,29 @@ export class Notification<T> {
    * being removed as it has limited usefulness, and we're trying to streamline the library.
    */
   toObservable(): Observable<T> {
-    const kind = this.kind;
-    switch (kind) {
-      case 'N':
-        return of(this.value!);
-      case 'E':
-        return throwError(this.error);
-      case 'C':
-        return EMPTY;
+    const { kind, value, error } = this;
+    // Select the observable to return by `kind`
+    const result =
+      kind === 'N'
+        ? // Next kind. Return an observable of that value.
+          of(value!)
+        : //
+        kind === 'E'
+        ? // Error kind. Return an observable that emits the error.
+          throwError(error)
+        : //
+        kind === 'C'
+        ? // Completion kind. Kind is "C", return an observable that just completes.
+          EMPTY
+        : // Unknown kind, return falsy, so we error below.
+          0;
+    if (!result) {
+      // TODO: consider removing this check. The only way to cause this would be to
+      // use the Notification constructor directly in a way that is not type-safe.
+      // and direct use of the Notification constructor is deprecated.
+      throw new TypeError(`Unexpected notification kind ${kind}`);
     }
-    throw new Error('unexpected notification kind value');
+    return result;
   }
 
   private static completeNotification = new Notification('C') as Notification<never> & CompleteNotification;
@@ -245,20 +232,11 @@ export class Notification<T> {
  * @param observer The observer to notify.
  */
 export function observeNotification<T>(notification: ObservableNotification<T>, observer: PartialObserver<T>) {
-  if (typeof notification.kind !== 'string') {
+  const { kind, value, error } = notification as any;
+  if (typeof kind !== 'string') {
     throw new TypeError('Invalid notification, missing "kind"');
   }
-  switch (notification.kind) {
-    case 'N':
-      observer.next?.(notification.value!);
-      break;
-    case 'E':
-      observer.error?.(notification.error);
-      break;
-    case 'C':
-      observer.complete?.();
-      break;
-  }
+  kind === 'N' ? observer.next?.(value!) : kind === 'E' ? observer.error?.(error) : observer.complete?.();
 }
 
 /**

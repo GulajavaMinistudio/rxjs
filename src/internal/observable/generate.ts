@@ -1,21 +1,14 @@
+/** @prettier */
 import { Observable } from '../Observable';
-import { Subscriber } from '../Subscriber';
 import { identity } from '../util/identity';
-import { SchedulerAction, SchedulerLike } from '../types';
+import { ObservableInput, SchedulerLike } from '../types';
 import { isScheduler } from '../util/isScheduler';
+import { defer } from './defer';
+import { scheduleIterable } from '../scheduled/scheduleIterable';
 
-export type ConditionFunc<S> = (state: S) => boolean;
-export type IterateFunc<S> = (state: S) => S;
-export type ResultFunc<S, T> = (state: S) => T;
-
-interface SchedulerState<T, S> {
-  needIterate?: boolean;
-  state: S;
-  subscriber: Subscriber<T>;
-  condition?: ConditionFunc<S>;
-  iterate: IterateFunc<S>;
-  resultSelector: ResultFunc<S, T>;
-}
+type ConditionFunc<S> = (state: S) => boolean;
+type IterateFunc<S> = (state: S) => S;
+type ResultFunc<S, T> = (state: S) => T;
 
 export interface GenerateBaseOptions<S> {
   /**
@@ -94,12 +87,15 @@ export interface GenerateOptions<T, S> extends GenerateBaseOptions<S> {
  * @param {function (state: S): T} resultSelector Selector function for results produced in the sequence. (deprecated)
  * @param {SchedulerLike} [scheduler] A {@link SchedulerLike} on which to run the generator loop. If not provided, defaults to emit immediately.
  * @returns {Observable<T>} The generated sequence.
+ * @deprecated Removing in v8. Use configuration object argument instead.
  */
-  export function generate<T, S>(initialState: S,
-                                 condition: ConditionFunc<S>,
-                                 iterate: IterateFunc<S>,
-                                 resultSelector: ResultFunc<S, T>,
-                                 scheduler?: SchedulerLike): Observable<T>;
+export function generate<T, S>(
+  initialState: S,
+  condition: ConditionFunc<S>,
+  iterate: IterateFunc<S>,
+  resultSelector: ResultFunc<S, T>,
+  scheduler?: SchedulerLike
+): Observable<T>;
 
 /**
  * Generates an Observable by running a state-driven loop
@@ -242,11 +238,14 @@ export interface GenerateOptions<T, S> extends GenerateBaseOptions<S> {
  * @param {function (state: S): T} [resultSelector] Selector function for results produced in the sequence.
  * @param {Scheduler} [scheduler] A {@link Scheduler} on which to run the generator loop. If not provided, defaults to emitting immediately.
  * @return {Observable<T>} The generated sequence.
+ * @deprecated Removing in v8. Use configuration object argument instead.
  */
-export function generate<S>(initialState: S,
-                            condition: ConditionFunc<S>,
-                            iterate: IterateFunc<S>,
-                            scheduler?: SchedulerLike): Observable<S>;
+export function generate<S>(
+  initialState: S,
+  condition: ConditionFunc<S>,
+  iterate: IterateFunc<S>,
+  scheduler?: SchedulerLike
+): Observable<S>;
 
 /**
  * Generates an observable sequence by running a state-driven loop
@@ -333,124 +332,55 @@ export function generate<S>(options: GenerateBaseOptions<S>): Observable<S>;
  */
 export function generate<T, S>(options: GenerateOptions<T, S>): Observable<T>;
 
-export function generate<T, S>(initialStateOrOptions: S | GenerateOptions<T, S>,
-                               condition?: ConditionFunc<S>,
-                               iterate?: IterateFunc<S>,
-                               resultSelectorOrScheduler?: (ResultFunc<S, T>) | SchedulerLike,
-                               scheduler?: SchedulerLike): Observable<T> {
-
+export function generate<T, S>(
+  initialStateOrOptions: S | GenerateOptions<T, S>,
+  condition?: ConditionFunc<S>,
+  iterate?: IterateFunc<S>,
+  resultSelectorOrScheduler?: ResultFunc<S, T> | SchedulerLike,
+  scheduler?: SchedulerLike
+): Observable<T> {
   let resultSelector: ResultFunc<S, T>;
   let initialState: S;
 
+  // TODO: Remove this as we move away from deprecated signatures
+  // and move towards a configuration object argument.
   if (arguments.length == 1) {
-    const options = initialStateOrOptions as GenerateOptions<T, S>;
-    initialState = options.initialState;
-    condition = options.condition;
-    iterate = options.iterate;
-    resultSelector = options.resultSelector || identity as ResultFunc<S, T>;
-    scheduler = options.scheduler;
-  } else if (resultSelectorOrScheduler === undefined || isScheduler(resultSelectorOrScheduler)) {
-    initialState = initialStateOrOptions as S;
-    resultSelector = identity as ResultFunc<S, T>;
-    scheduler = resultSelectorOrScheduler as SchedulerLike;
+    // If we only have one argument, we can assume it is a configuration object.
+    // Note that folks not using TypeScript may trip over this.
+    ({
+      initialState,
+      condition,
+      iterate,
+      resultSelector = identity as ResultFunc<S, T>,
+      scheduler,
+    } = initialStateOrOptions as GenerateOptions<T, S>);
   } else {
+    // Deprecated arguments path. Figure out what the user
+    // passed and set it here.
     initialState = initialStateOrOptions as S;
-    resultSelector = resultSelectorOrScheduler as ResultFunc<S, T>;
+    if (!resultSelectorOrScheduler || isScheduler(resultSelectorOrScheduler)) {
+      resultSelector = identity as ResultFunc<S, T>;
+      scheduler = resultSelectorOrScheduler as SchedulerLike;
+    } else {
+      resultSelector = resultSelectorOrScheduler as ResultFunc<S, T>;
+    }
   }
 
-  return new Observable<T>(subscriber => {
-    let state = initialState;
-    if (scheduler) {
-      return scheduler.schedule<SchedulerState<T, S>>(dispatch as any, 0, {
-        subscriber,
-        iterate: iterate!,
-        condition,
-        resultSelector,
-        state
-      });
+  // The actual generator used to "generate" values.
+  function* gen() {
+    for (let state = initialState; !condition || condition(state); state = iterate!(state)) {
+      yield resultSelector(state);
     }
+  }
 
-    do {
-      if (condition) {
-        let conditionResult: boolean;
-        try {
-          conditionResult = condition(state);
-        } catch (err) {
-          subscriber.error(err);
-          return undefined;
-        }
-        if (!conditionResult) {
-          subscriber.complete();
-          break;
-        }
-      }
-      let value: T;
-      try {
-        value = resultSelector(state);
-      } catch (err) {
-        subscriber.error(err);
-        return undefined;
-      }
-      subscriber.next(value);
-      if (subscriber.closed) {
-        break;
-      }
-      try {
-        state = iterate!(state);
-      } catch (err) {
-        subscriber.error(err);
-        return undefined;
-      }
-    } while (true);
-
-    return undefined;
-  });
-}
-
-function dispatch<T, S>(this: SchedulerAction<SchedulerState<T, S>>, state: SchedulerState<T, S>) {
-  const { subscriber, condition } = state;
-  if (subscriber.closed) {
-    return undefined;
-  }
-  if (state.needIterate) {
-    try {
-      state.state = state.iterate(state.state);
-    } catch (err) {
-      subscriber.error(err);
-      return undefined;
-    }
-  } else {
-    state.needIterate = true;
-  }
-  if (condition) {
-    let conditionResult: boolean;
-    try {
-      conditionResult = condition(state.state);
-    } catch (err) {
-      subscriber.error(err);
-      return undefined;
-    }
-    if (!conditionResult) {
-      subscriber.complete();
-      return undefined;
-    }
-    if (subscriber.closed) {
-      return undefined;
-    }
-  }
-  let value: T;
-  try {
-    value = state.resultSelector(state.state);
-  } catch (err) {
-    subscriber.error(err);
-    return undefined;
-  }
-  if (subscriber.closed) {
-    return undefined;
-  }
-  subscriber.next(value);
-  if (subscriber.closed) {
-    return undefined;
-  }
-  return this.schedule(state);
+  // We use `defer` because we want to defer the creation of the iterator from the iterable.
+  return defer(
+    (scheduler
+      ? // If a scheduler was provided, use `scheduleIterable` to ensure that iteration/generation
+        // happens on the scheduler.
+        () => scheduleIterable(gen(), scheduler!)
+      : // Otherwise, if there's no scheduler, we can just use the generator function directly in
+        // `defer` and executing it will return the generator (which is iterable).
+        gen) as () => ObservableInput<T>
+  );
 }
