@@ -1,11 +1,10 @@
 import { SchedulerLike } from '../types';
 import { Observable } from '../Observable';
-import { isScheduler } from '../util/isScheduler';
-import { mapOneOrManyArgs } from '../util/mapOneOrManyArgs';
+import { bindCallbackInternals } from './bindCallbackInternals';
 
 // tslint:disable:max-line-length
 /** @deprecated resultSelector is no longer supported, use a mapping function. */
-export function bindCallback(callbackFunc: Function, resultSelector: Function, scheduler?: SchedulerLike): (...args: any[]) => Observable<any>;
+export function bindCallback(callbackFunc: (...args: any[]) => any, resultSelector: (...args: any[]) => any, scheduler?: SchedulerLike): (...args: any[]) => Observable<any>;
 
 export function bindCallback<R1, R2, R3, R4>(callbackFunc: (callback: (res1: R1, res2: R2, res3: R3, res4: R4, ...args: any[]) => any) => any, scheduler?: SchedulerLike): () => Observable<any[]>;
 export function bindCallback<R1, R2, R3>(callbackFunc: (callback: (res1: R1, res2: R2, res3: R3) => any) => any, scheduler?: SchedulerLike): () => Observable<[R1, R2, R3]>;
@@ -46,7 +45,7 @@ export function bindCallback<A1, A2, A3, A4, A5>(callbackFunc: (arg1: A1, arg2: 
 export function bindCallback<A, R>(callbackFunc: (...args: Array<A | ((result: R) => any)>) => any, scheduler?: SchedulerLike): (...args: A[]) => Observable<R>;
 export function bindCallback<A, R>(callbackFunc: (...args: Array<A | ((...results: R[]) => any)>) => any, scheduler?: SchedulerLike): (...args: A[]) => Observable<R[]>;
 
-export function bindCallback(callbackFunc: Function, scheduler?: SchedulerLike): (...args: any[]) => Observable<any>;
+export function bindCallback(callbackFunc: (...args: any[]) => any, scheduler?: SchedulerLike): (...args: any[]) => Observable<any>;
 
 // tslint:enable:max-line-length
 
@@ -177,103 +176,5 @@ export function bindCallback(
   resultSelector?: any,
   scheduler?: SchedulerLike
 ): (...args: any[]) => Observable<unknown> {
-  if (resultSelector) {
-    if (isScheduler(resultSelector)) {
-      scheduler = resultSelector;
-    } else {
-      // Deprecated path (Returning Observable<R>)
-      // TODO: Fix these internal typings.
-      return (...args: any[]) => (bindCallback(callbackFunc, scheduler) as any)(...args).pipe(
-        mapOneOrManyArgs(resultSelector),
-      );
-    }
-  }
-
-  
-  return function (this: any, ...args: any[]) {
-    let results: any;
-    let hasResults = false;
-    let hasError = false;
-    let error: any;
-    return new Observable((subscriber) => {
-      if (!scheduler) {
-        let isCurrentlyAsync = false;
-        let hasCompletedSynchronously = false;
-        if (hasResults) {
-          subscriber.next(results);
-          subscriber.complete();
-        } else if (hasError) {
-          subscriber.error(error);
-        } else {
-          const handler = (...innerArgs: any[]) => {
-            hasResults = true;
-            results = innerArgs.length <= 1 ? innerArgs[0] : innerArgs;
-            subscriber.next(results);
-            if (isCurrentlyAsync) {
-              subscriber.complete();
-            } else {
-              hasCompletedSynchronously = true;
-            }
-          };
-
-          try {
-            callbackFunc.apply(this, [...args, handler]);
-          } catch (err) {
-            hasError = true;
-            error = err;
-            subscriber.error(err);
-          }
-          isCurrentlyAsync = true;
-
-          if (hasCompletedSynchronously && !hasError) {
-            subscriber.complete();
-          }
-        }
-        return;
-      } else {
-        const scheduleNext = (value: any[]) => {
-          hasResults = true;
-          results = value.length <= 1 ? value[0] : value;
-          subscriber.add(
-            scheduler!.schedule(() => {
-              subscriber.next(results);
-              subscriber.add(
-                scheduler!.schedule(() => {
-                  subscriber.complete();
-                })
-              );
-            })
-          );
-        };
-
-        const scheduleError = (err: any) => {
-          hasError = true;
-          error = err;
-          subscriber.add(
-            scheduler!.schedule(() => {
-              subscriber.error(error);
-            })
-          );
-        };
-
-        return scheduler.schedule(() => {
-          if (hasResults) {
-            scheduleNext(results);
-          } else if (hasError) {
-            scheduleError(error);
-          } else {
-            try {
-              callbackFunc.apply(this, [
-                ...args,
-                (...innerArgs: any[]) => scheduleNext(innerArgs)
-              ]);
-            } catch (err) {
-              scheduleError(err);
-              return;
-            }
-          }
-        });
-      }
-    });
-  };
+  return bindCallbackInternals(false, callbackFunc, resultSelector, scheduler);
 }

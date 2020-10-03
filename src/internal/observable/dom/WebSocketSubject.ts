@@ -172,7 +172,7 @@ export class WebSocketSubject<T> extends AnonymousSubject<T> {
       if (typeof urlConfigOrSource === 'string') {
         config.url = urlConfigOrSource;
       } else {
-        for (let key in urlConfigOrSource) {
+        for (const key in urlConfigOrSource) {
           if (urlConfigOrSource.hasOwnProperty(key)) {
             (config as any)[key] = (urlConfigOrSource as any)[key];
           }
@@ -189,7 +189,7 @@ export class WebSocketSubject<T> extends AnonymousSubject<T> {
   }
 
   lift<R>(operator: Operator<T, R>): WebSocketSubject<R> {
-    const sock = new WebSocketSubject<R>(this._config as WebSocketSubjectConfig<any>, <any> this.destination);
+    const sock = new WebSocketSubject<R>(this._config as WebSocketSubjectConfig<any>, this.destination as any);
     sock.operator = operator;
     sock.source = this;
     return sock;
@@ -278,7 +278,7 @@ export class WebSocketSubject<T> extends AnonymousSubject<T> {
       }
     });
 
-    socket.onopen = (e: Event) => {
+    socket.onopen = (evt: Event) => {
       const { _socket } = this;
       if (!_socket) {
         socket!.close();
@@ -287,7 +287,7 @@ export class WebSocketSubject<T> extends AnonymousSubject<T> {
       }
       const { openObserver } = this._config;
       if (openObserver) {
-        openObserver.next(e);
+        openObserver.next(evt);
       }
 
       const queue = this.destination;
@@ -303,13 +303,13 @@ export class WebSocketSubject<T> extends AnonymousSubject<T> {
             }
           }
         },
-        (e) => {
+        (err) => {
           const { closingObserver } = this._config;
           if (closingObserver) {
             closingObserver.next(undefined);
           }
-          if (e && e.code) {
-            socket!.close(e.code, e.reason);
+          if (err && err.code) {
+            socket!.close(err.code, err.reason);
           } else {
             observer.error(new TypeError(WEBSOCKETSUBJECT_INVALID_ERROR_OBJECT));
           }
@@ -326,7 +326,7 @@ export class WebSocketSubject<T> extends AnonymousSubject<T> {
       ) as Subscriber<any>;
 
       if (queue && queue instanceof ReplaySubject) {
-        subscription.add((<ReplaySubject<T>>queue).subscribe(this.destination));
+        subscription.add((queue as ReplaySubject<T>).subscribe(this.destination));
       }
     };
 
