@@ -1,6 +1,6 @@
 /** @prettier */
 import { Subscriber } from '../Subscriber';
-import { MonoTypeOperatorFunction, SubscribableOrPromise } from '../types';
+import { MonoTypeOperatorFunction, ObservableInput } from '../types';
 
 import { operate } from '../util/lift';
 import { innerFrom } from '../observable/from';
@@ -44,17 +44,18 @@ import { OperatorSubscriber } from './OperatorSubscriber';
  * @see {@link sample}
  * @see {@link throttle}
  *
- * @param {function(value: T): SubscribableOrPromise} durationSelector A function
+ * @param durationSelector A function
  * that receives a value from the source Observable, for computing the silencing
  * duration, returned as an Observable or a Promise.
- * @return {Observable<T>} An Observable that performs rate-limiting of
+ * @return An Observable that performs rate-limiting of
  * emissions from the source Observable.
  */
-export function audit<T>(durationSelector: (value: T) => SubscribableOrPromise<any>): MonoTypeOperatorFunction<T> {
+export function audit<T>(durationSelector: (value: T) => ObservableInput<any>): MonoTypeOperatorFunction<T> {
   return operate((source, subscriber) => {
     let hasValue = false;
     let lastValue: T | null = null;
     let durationSubscriber: Subscriber<any> | null = null;
+    let isComplete = false;
 
     const endDuration = () => {
       durationSubscriber?.unsubscribe();
@@ -65,18 +66,27 @@ export function audit<T>(durationSelector: (value: T) => SubscribableOrPromise<a
         lastValue = null;
         subscriber.next(value);
       }
+      isComplete && subscriber.complete();
     };
 
     source.subscribe(
-      new OperatorSubscriber(subscriber, (value) => {
-        hasValue = true;
-        lastValue = value;
-        if (!durationSubscriber) {
-          innerFrom(durationSelector(value)).subscribe(
-            (durationSubscriber = new OperatorSubscriber(subscriber, endDuration, undefined, endDuration))
-          );
+      new OperatorSubscriber(
+        subscriber,
+        (value) => {
+          hasValue = true;
+          lastValue = value;
+          if (!durationSubscriber) {
+            innerFrom(durationSelector(value)).subscribe(
+              (durationSubscriber = new OperatorSubscriber(subscriber, endDuration, undefined, endDuration))
+            );
+          }
+        },
+        undefined,
+        () => {
+          isComplete = true;
+          (!hasValue || !durationSubscriber || durationSubscriber.closed) && subscriber.complete();
         }
-      })
+      )
     );
   });
 }
