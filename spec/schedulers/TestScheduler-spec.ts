@@ -3,10 +3,11 @@ import { hot, cold, expectObservable, expectSubscriptions, time } from '../helpe
 import { TestScheduler } from 'rxjs/testing';
 import { Observable, NEVER, EMPTY, Subject, of, merge, animationFrameScheduler, asapScheduler, asyncScheduler, interval } from 'rxjs';
 import { delay, debounceTime, concatMap, mergeMap, mapTo, take } from 'rxjs/operators';
-import { nextNotification, COMPLETE_NOTIFICATION, errorNotification } from 'rxjs/internal/Notification';
+import { nextNotification, COMPLETE_NOTIFICATION, errorNotification } from 'rxjs/internal/NotificationFactories';
 import { animationFrameProvider } from 'rxjs/internal/scheduler/animationFrameProvider';
 import { immediateProvider } from 'rxjs/internal/scheduler/immediateProvider';
 import { intervalProvider } from 'rxjs/internal/scheduler/intervalProvider';
+import { timeoutProvider } from 'rxjs/internal/scheduler/timeoutProvider';
 
 declare const rxTestScheduler: TestScheduler;
 
@@ -125,11 +126,19 @@ describe('TestScheduler', () => {
       expect(result.unsubscribedFrame).to.equal(70);
     });
 
-    it('should suppport time progression syntax when runMode=true', () => {
+    it('should support time progression syntax when runMode=true', () => {
       const runMode = true;
       const result = TestScheduler.parseMarblesAsSubscriptions('10.2ms ^ 1.2s - 1m !', runMode);
       expect(result.subscribedFrame).to.equal(10.2);
       expect(result.unsubscribedFrame).to.equal(10.2 + 10 + (1.2 * 1000) + 10 + (1000 * 60));
+    });
+
+    it('should throw if found more than one subscription point', () => {
+      expect(() => TestScheduler.parseMarblesAsSubscriptions('---^-^-!-')).to.throw();
+    });
+
+    it('should throw if found more than one unsubscription point', () => {
+      expect(() => TestScheduler.parseMarblesAsSubscriptions('---^---!-!')).to.throw();
     });
   });
 
@@ -672,22 +681,41 @@ describe('TestScheduler', () => {
         });
       });
 
-      it('should schedule immediates before intervals', () => {
+      it('should schedule timeouts', () => {
+        const testScheduler = new TestScheduler(assertDeepEquals);
+        testScheduler.run(() => {
+          const values: string[] = [];
+          const { setTimeout } = timeoutProvider;
+          setTimeout(() => {
+            values.push(`a@${testScheduler.now()}`);
+          }, 1);
+          expect(values).to.deep.equal([]);
+          testScheduler.schedule(() => {
+            expect(values).to.deep.equal(['a@1']);
+          }, 10);
+        });
+      });
+
+      it('should schedule immediates before intervals and timeouts', () => {
         const testScheduler = new TestScheduler(assertDeepEquals);
         testScheduler.run(() => {
           const values: string[] = [];
           const { setImmediate } = immediateProvider;
           const { setInterval, clearInterval } = intervalProvider;
+          const { setTimeout } = timeoutProvider;
           const handle = setInterval(() => {
             values.push(`a@${testScheduler.now()}`);
             clearInterval(handle);
           }, 0);
-          setImmediate(() => {
+          setTimeout(() => {
             values.push(`b@${testScheduler.now()}`);
+          }, 0);
+          setImmediate(() => {
+            values.push(`c@${testScheduler.now()}`);
           });
           expect(values).to.deep.equal([]);
           testScheduler.schedule(() => {
-            expect(values).to.deep.equal(['b@0', 'a@0']);
+            expect(values).to.deep.equal(['c@0', 'a@0', 'b@0']);
           }, 10);
         });
       });
