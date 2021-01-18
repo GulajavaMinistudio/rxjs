@@ -118,6 +118,8 @@ export declare const config: {
     useDeprecatedNextContext: boolean;
 };
 
+export declare function connectable<T>(source: ObservableInput<T>, connector?: Subject<T>): ConnectableObservableLike<T>;
+
 export declare class ConnectableObservable<T> extends Observable<T> {
     protected _connection: Subscription | null;
     protected _refCount: number;
@@ -132,7 +134,7 @@ export declare class ConnectableObservable<T> extends Observable<T> {
     refCount(): Observable<T>;
 }
 
-export declare type Cons<X, Y extends any[]> = ((arg: X, ...rest: Y) => any) extends (...args: infer U) => any ? U : never;
+export declare type Cons<X, Y extends readonly any[]> = ((arg: X, ...rest: Y) => any) extends (...args: infer U) => any ? U : never;
 
 export declare function defer<R extends ObservableInput<any>>(observableFactory: () => R): Observable<ObservedValueOf<R>>;
 
@@ -159,18 +161,21 @@ export interface ErrorObserver<T> {
 
 export declare type FactoryOrValue<T> = T | (() => T);
 
+export declare type Falsy = null | undefined | false | 0 | -0 | 0n | '';
+
 export declare function firstValueFrom<T>(source: Observable<T>): Promise<T>;
 
-export declare function forkJoin(sources: []): Observable<never>;
+export declare function forkJoin(sources: readonly []): Observable<never>;
 export declare function forkJoin<A extends readonly unknown[]>(sources: readonly [...ObservableInputTuple<A>]): Observable<A>;
+export declare function forkJoin<A extends readonly unknown[], R>(sources: readonly [...ObservableInputTuple<A>], resultSelector: (...values: A) => R): Observable<R>;
 export declare function forkJoin<A extends readonly unknown[]>(...sources: [...ObservableInputTuple<A>]): Observable<A>;
+export declare function forkJoin<A extends readonly unknown[], R>(...sourcesAndResultSelector: [...ObservableInputTuple<A>, (...values: A) => R]): Observable<R>;
 export declare function forkJoin(sourcesObject: {
     [K in any]: never;
 }): Observable<never>;
 export declare function forkJoin<T>(sourcesObject: T): Observable<{
     [K in keyof T]: ObservedValueOf<T[K]>;
 }>;
-export declare function forkJoin(...args: Array<ObservableInput<any> | ((...args: any[]) => any)>): Observable<any>;
 
 export declare function from<O extends ObservableInput<any>>(input: O): Observable<ObservedValueOf<O>>;
 export declare function from<O extends ObservableInput<any>>(input: O, scheduler: SchedulerLike): Observable<ObservedValueOf<O>>;
@@ -192,7 +197,7 @@ export interface GroupedObservable<K, T> extends Observable<T> {
     readonly key: K;
 }
 
-export declare type Head<X extends any[]> = ((...args: X) => any) extends (arg: infer U, ...rest: any[]) => any ? U : never;
+export declare type Head<X extends readonly any[]> = ((...args: X) => any) extends (arg: infer U, ...rest: any[]) => any ? U : never;
 
 export declare function identity<T>(x: T): T;
 
@@ -210,34 +215,10 @@ export declare function isObservable<T>(obj: any): obj is Observable<T>;
 
 export declare function lastValueFrom<T>(source: Observable<T>): Promise<T>;
 
-export declare function merge<T>(v1: ObservableInput<T>, scheduler: SchedulerLike): Observable<T>;
-export declare function merge<T>(v1: ObservableInput<T>, concurrent: number, scheduler: SchedulerLike): Observable<T>;
-export declare function merge<T, T2>(v1: ObservableInput<T>, v2: ObservableInput<T2>, scheduler: SchedulerLike): Observable<T | T2>;
-export declare function merge<T, T2>(v1: ObservableInput<T>, v2: ObservableInput<T2>, concurrent: number, scheduler: SchedulerLike): Observable<T | T2>;
-export declare function merge<T, T2, T3>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, scheduler: SchedulerLike): Observable<T | T2 | T3>;
-export declare function merge<T, T2, T3>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, concurrent: number, scheduler: SchedulerLike): Observable<T | T2 | T3>;
-export declare function merge<T, T2, T3, T4>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>, scheduler: SchedulerLike): Observable<T | T2 | T3 | T4>;
-export declare function merge<T, T2, T3, T4>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>, concurrent: number, scheduler: SchedulerLike): Observable<T | T2 | T3 | T4>;
-export declare function merge<T, T2, T3, T4, T5>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>, v5: ObservableInput<T5>, scheduler: SchedulerLike): Observable<T | T2 | T3 | T4 | T5>;
-export declare function merge<T, T2, T3, T4, T5>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>, v5: ObservableInput<T5>, concurrent: number, scheduler: SchedulerLike): Observable<T | T2 | T3 | T4 | T5>;
-export declare function merge<T, T2, T3, T4, T5, T6>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>, v5: ObservableInput<T5>, v6: ObservableInput<T6>, scheduler: SchedulerLike): Observable<T | T2 | T3 | T4 | T5 | T6>;
-export declare function merge<T, T2, T3, T4, T5, T6>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>, v5: ObservableInput<T5>, v6: ObservableInput<T6>, concurrent: number, scheduler: SchedulerLike): Observable<T | T2 | T3 | T4 | T5 | T6>;
-export declare function merge<T>(v1: ObservableInput<T>): Observable<T>;
-export declare function merge<T>(v1: ObservableInput<T>, concurrent: number): Observable<T>;
-export declare function merge<T, T2>(v1: ObservableInput<T>, v2: ObservableInput<T2>): Observable<T | T2>;
-export declare function merge<T, T2>(v1: ObservableInput<T>, v2: ObservableInput<T2>, concurrent: number): Observable<T | T2>;
-export declare function merge<T, T2, T3>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>): Observable<T | T2 | T3>;
-export declare function merge<T, T2, T3>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, concurrent: number): Observable<T | T2 | T3>;
-export declare function merge<T, T2, T3, T4>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>): Observable<T | T2 | T3 | T4>;
-export declare function merge<T, T2, T3, T4>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>, concurrent: number): Observable<T | T2 | T3 | T4>;
-export declare function merge<T, T2, T3, T4, T5>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>, v5: ObservableInput<T5>): Observable<T | T2 | T3 | T4 | T5>;
-export declare function merge<T, T2, T3, T4, T5>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>, v5: ObservableInput<T5>, concurrent: number): Observable<T | T2 | T3 | T4 | T5>;
-export declare function merge<T, T2, T3, T4, T5, T6>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>, v5: ObservableInput<T5>, v6: ObservableInput<T6>): Observable<T | T2 | T3 | T4 | T5 | T6>;
-export declare function merge<T, T2, T3, T4, T5, T6>(v1: ObservableInput<T>, v2: ObservableInput<T2>, v3: ObservableInput<T3>, v4: ObservableInput<T4>, v5: ObservableInput<T5>, v6: ObservableInput<T6>, concurrent: number): Observable<T | T2 | T3 | T4 | T5 | T6>;
-export declare function merge<T>(...observables: (ObservableInput<T> | number)[]): Observable<T>;
-export declare function merge<T>(...observables: (ObservableInput<T> | SchedulerLike | number)[]): Observable<T>;
-export declare function merge<T, R>(...observables: (ObservableInput<any> | number)[]): Observable<R>;
-export declare function merge<T, R>(...observables: (ObservableInput<any> | SchedulerLike | number)[]): Observable<R>;
+export declare function merge<A extends readonly unknown[]>(...args: [...ObservableInputTuple<A>]): Observable<A[number]>;
+export declare function merge<A extends readonly unknown[]>(...args: [...ObservableInputTuple<A>, number?]): Observable<A[number]>;
+export declare function merge<A extends readonly unknown[]>(...args: [...ObservableInputTuple<A>, SchedulerLike?]): Observable<A[number]>;
+export declare function merge<A extends readonly unknown[]>(...args: [...ObservableInputTuple<A>, number?, SchedulerLike?]): Observable<A[number]>;
 
 export interface MonoTypeOperatorFunction<T> extends OperatorFunction<T, T> {
 }
@@ -298,7 +279,7 @@ export interface ObjectUnsubscribedError extends Error {
 
 export declare const ObjectUnsubscribedError: ObjectUnsubscribedErrorCtor;
 
-export declare const observable: string | symbol;
+export declare const observable: string | SymbolConstructor["observable"];
 
 export declare class Observable<T> implements Subscribable<T> {
     protected operator: Operator<any, T> | undefined;
@@ -320,7 +301,7 @@ export declare class Observable<T> implements Subscribable<T> {
     pipe<A, B, C, D, E, F, G, H>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>, op3: OperatorFunction<B, C>, op4: OperatorFunction<C, D>, op5: OperatorFunction<D, E>, op6: OperatorFunction<E, F>, op7: OperatorFunction<F, G>, op8: OperatorFunction<G, H>): Observable<H>;
     pipe<A, B, C, D, E, F, G, H, I>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>, op3: OperatorFunction<B, C>, op4: OperatorFunction<C, D>, op5: OperatorFunction<D, E>, op6: OperatorFunction<E, F>, op7: OperatorFunction<F, G>, op8: OperatorFunction<G, H>, op9: OperatorFunction<H, I>): Observable<I>;
     pipe<A, B, C, D, E, F, G, H, I>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>, op3: OperatorFunction<B, C>, op4: OperatorFunction<C, D>, op5: OperatorFunction<D, E>, op6: OperatorFunction<E, F>, op7: OperatorFunction<F, G>, op8: OperatorFunction<G, H>, op9: OperatorFunction<H, I>, ...operations: OperatorFunction<any, any>[]): Observable<unknown>;
-    subscribe(observer?: PartialObserver<T>): Subscription;
+    subscribe(observer?: Partial<Observer<T>>): Subscription;
     subscribe(next: null | undefined, error: null | undefined, complete: () => void): Subscription;
     subscribe(next: null | undefined, error: (error: any) => void, complete?: () => void): Subscription;
     subscribe(next: (value: T) => void, error: null | undefined, complete: () => void): Subscription;
@@ -352,7 +333,6 @@ export declare type ObservedValueTupleFromArray<X> = {
 export declare type ObservedValueUnionFromArray<X> = X extends Array<ObservableInput<infer T>> ? T : never;
 
 export interface Observer<T> {
-    closed?: boolean;
     complete: () => void;
     error: (err: any) => void;
     next: (value: T) => void;
@@ -371,13 +351,10 @@ export declare function of<T, T2, T3, T4, T5, T6, T7, T8, T9>(a: T, b: T2, c: T3
 export declare function of(): Observable<never>;
 export declare function of<T>(): Observable<T>;
 export declare function of<T>(value: T): Observable<T>;
-export declare function of<T, U>(value1: T, value2: U): Observable<T | U>;
-export declare function of<T, U, V>(value1: T, value2: U, value3: V): Observable<T | U | V>;
-export declare function of<A extends Array<any>>(...args: A): Observable<ValueFromArray<A>>;
+export declare function of<A extends readonly unknown[]>(...args: A): Observable<ValueFromArray<A>>;
 
-export declare function onErrorResumeNext(): Observable<never>;
-export declare function onErrorResumeNext<O extends ObservableInput<any>>(arrayOfSources: O[]): Observable<ObservedValueOf<O>>;
-export declare function onErrorResumeNext<A extends ObservableInput<any>[]>(...sources: A): Observable<ObservedValueUnionFromArray<A>>;
+export declare function onErrorResumeNext<A extends readonly unknown[]>(sources: [...ObservableInputTuple<A>]): Observable<A[number]>;
+export declare function onErrorResumeNext<A extends readonly unknown[]>(...sources: [...ObservableInputTuple<A>]): Observable<A[number]>;
 
 export interface Operator<T, R> {
     call(subscriber: Subscriber<R>, source: any): TeardownLogic;
@@ -386,7 +363,10 @@ export interface Operator<T, R> {
 export interface OperatorFunction<T, R> extends UnaryFunction<Observable<T>, Observable<R>> {
 }
 
-export declare function pairs<T>(obj: Record<string, T> | ArrayLike<T>, scheduler?: SchedulerLike): Observable<[string, T]>;
+export declare function pairs<T>(arr: readonly T[], scheduler?: SchedulerLike): Observable<[string, T]>;
+export declare function pairs<O extends Record<string, unknown>>(obj: O, scheduler?: SchedulerLike): Observable<[keyof O, O[keyof O]]>;
+export declare function pairs<T>(iterable: Iterable<T>, scheduler?: SchedulerLike): Observable<[string, T]>;
+export declare function pairs(n: number | bigint | boolean | ((...args: any[]) => any) | symbol, scheduler?: SchedulerLike): Observable<[never, never]>;
 
 export declare type PartialObserver<T> = NextObserver<T> | ErrorObserver<T> | CompletionObserver<T>;
 
@@ -408,8 +388,8 @@ export declare const queue: QueueScheduler;
 
 export declare const queueScheduler: QueueScheduler;
 
-export declare function race<A extends ObservableInput<any>[]>(observables: A): Observable<ObservedValueUnionFromArray<A>>;
-export declare function race<A extends ObservableInput<any>[]>(...observables: A): Observable<ObservedValueUnionFromArray<A>>;
+export declare function race<T extends readonly unknown[]>(inputs: [...ObservableInputTuple<T>]): Observable<T[number]>;
+export declare function race<T extends readonly unknown[]>(...inputs: [...ObservableInputTuple<T>]): Observable<T[number]>;
 
 export declare function range(start: number, count?: number): Observable<number>;
 export declare function range(start: number, count: number | undefined, scheduler: SchedulerLike): Observable<number>;
@@ -463,12 +443,11 @@ export declare class Subject<T> extends Observable<T> implements SubscriptionLik
     static create: (...args: any[]) => any;
 }
 
+export interface SubjectLike<T> extends Observer<T>, Subscribable<T> {
+}
+
 export interface Subscribable<T> {
-    subscribe(observer?: PartialObserver<T>): Unsubscribable;
-    subscribe(next: null | undefined, error: null | undefined, complete: () => void): Unsubscribable;
-    subscribe(next: null | undefined, error: (error: any) => void, complete?: () => void): Unsubscribable;
-    subscribe(next: (value: T) => void, error: null | undefined, complete: () => void): Unsubscribable;
-    subscribe(next?: (value: T) => void, error?: (error: any) => void, complete?: () => void): Unsubscribable;
+    subscribe(observer: Partial<Observer<T>>): Unsubscribable;
 }
 
 export declare type SubscribableOrPromise<T> = Subscribable<T> | Subscribable<never> | PromiseLike<T> | InteropObservable<T>;
@@ -501,7 +480,7 @@ export interface SubscriptionLike extends Unsubscribable {
     unsubscribe(): void;
 }
 
-export declare type Tail<X extends any[]> = ((...args: X) => any) extends (arg: any, ...rest: infer U) => any ? U : never;
+export declare type Tail<X extends readonly any[]> = ((...args: X) => any) extends (arg: any, ...rest: infer U) => any ? U : never;
 
 export declare type TeardownLogic = Subscription | Unsubscribable | (() => void) | void;
 
@@ -533,6 +512,8 @@ export interface TimestampProvider {
     now(): number;
 }
 
+export declare type TruthyTypesOf<T> = T extends Falsy ? never : T;
+
 export interface UnaryFunction<T, R> {
     (source: T): R;
 }
@@ -549,7 +530,7 @@ export declare const UnsubscriptionError: UnsubscriptionErrorCtor;
 
 export declare function using<T>(resourceFactory: () => Unsubscribable | void, observableFactory: (resource: Unsubscribable | void) => ObservableInput<T> | void): Observable<T>;
 
-export declare type ValueFromArray<A> = A extends Array<infer T> ? T : never;
+export declare type ValueFromArray<A extends readonly unknown[]> = A extends Array<infer T> ? T : never;
 
 export declare type ValueFromNotification<T> = T extends {
     kind: 'N' | 'E' | 'C';
@@ -578,28 +559,7 @@ export declare class VirtualTimeScheduler extends AsyncScheduler {
     static frameTimeFactor: number;
 }
 
-export declare function zip<O1 extends ObservableInput<any>, R>(v1: O1, resultSelector: (v1: ObservedValueOf<O1>) => R): Observable<R>;
-export declare function zip<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>, R>(v1: O1, v2: O2, resultSelector: (v1: ObservedValueOf<O1>, v2: ObservedValueOf<O2>) => R): Observable<R>;
-export declare function zip<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>, O3 extends ObservableInput<any>, R>(v1: O1, v2: O2, v3: O3, resultSelector: (v1: ObservedValueOf<O1>, v2: ObservedValueOf<O2>, v3: ObservedValueOf<O3>) => R): Observable<R>;
-export declare function zip<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>, O3 extends ObservableInput<any>, O4 extends ObservableInput<any>, R>(v1: O1, v2: O2, v3: O3, v4: O4, resultSelector: (v1: ObservedValueOf<O1>, v2: ObservedValueOf<O2>, v3: ObservedValueOf<O3>, v4: ObservedValueOf<O4>) => R): Observable<R>;
-export declare function zip<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>, O3 extends ObservableInput<any>, O4 extends ObservableInput<any>, O5 extends ObservableInput<any>, R>(v1: O1, v2: O2, v3: O3, v4: O4, v5: O5, resultSelector: (v1: ObservedValueOf<O1>, v2: ObservedValueOf<O2>, v3: ObservedValueOf<O3>, v4: ObservedValueOf<O4>, v5: ObservedValueOf<O5>) => R): Observable<R>;
-export declare function zip<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>, O3 extends ObservableInput<any>, O4 extends ObservableInput<any>, O5 extends ObservableInput<any>, O6 extends ObservableInput<any>, R>(v1: O1, v2: O2, v3: O3, v4: O4, v5: O5, v6: O6, resultSelector: (v1: ObservedValueOf<O1>, v2: ObservedValueOf<O2>, v3: ObservedValueOf<O3>, v4: ObservedValueOf<O4>, v5: ObservedValueOf<O5>, v6: ObservedValueOf<O6>) => R): Observable<R>;
-export declare function zip<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>>(v1: O1, v2: O2): Observable<[ObservedValueOf<O1>, ObservedValueOf<O2>]>;
-export declare function zip<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>, O3 extends ObservableInput<any>>(v1: O1, v2: O2, v3: O3): Observable<[ObservedValueOf<O1>, ObservedValueOf<O2>, ObservedValueOf<O3>]>;
-export declare function zip<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>, O3 extends ObservableInput<any>, O4 extends ObservableInput<any>>(v1: O1, v2: O2, v3: O3, v4: O4): Observable<[ObservedValueOf<O1>, ObservedValueOf<O2>, ObservedValueOf<O3>, ObservedValueOf<O4>]>;
-export declare function zip<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>, O3 extends ObservableInput<any>, O4 extends ObservableInput<any>, O5 extends ObservableInput<any>>(v1: O1, v2: O2, v3: O3, v4: O4, v5: O5): Observable<[ObservedValueOf<O1>, ObservedValueOf<O2>, ObservedValueOf<O3>, ObservedValueOf<O4>, ObservedValueOf<O5>]>;
-export declare function zip<O1 extends ObservableInput<any>, O2 extends ObservableInput<any>, O3 extends ObservableInput<any>, O4 extends ObservableInput<any>, O5 extends ObservableInput<any>, O6 extends ObservableInput<any>>(v1: O1, v2: O2, v3: O3, v4: O4, v5: O5, v6: O6): Observable<[
-    ObservedValueOf<O1>,
-    ObservedValueOf<O2>,
-    ObservedValueOf<O3>,
-    ObservedValueOf<O4>,
-    ObservedValueOf<O5>,
-    ObservedValueOf<O6>
-]>;
-export declare function zip<O extends ObservableInput<any>>(array: O[]): Observable<ObservedValueOf<O>[]>;
-export declare function zip<R>(array: ObservableInput<any>[]): Observable<R>;
-export declare function zip<O extends ObservableInput<any>, R>(array: O[], resultSelector: (...values: ObservedValueOf<O>[]) => R): Observable<R>;
-export declare function zip<R>(array: ObservableInput<any>[], resultSelector: (...values: any[]) => R): Observable<R>;
-export declare function zip<O extends ObservableInput<any>>(...observables: O[]): Observable<ObservedValueOf<O>[]>;
-export declare function zip<O extends ObservableInput<any>, R>(...observables: Array<O | ((...values: ObservedValueOf<O>[]) => R)>): Observable<R>;
-export declare function zip<R>(...observables: Array<ObservableInput<any> | ((...values: Array<any>) => R)>): Observable<R>;
+export declare function zip<A extends readonly unknown[]>(sources: [...ObservableInputTuple<A>]): Observable<A>;
+export declare function zip<A extends readonly unknown[], R>(sources: [...ObservableInputTuple<A>], resultSelector: (...values: A) => R): Observable<R>;
+export declare function zip<A extends readonly unknown[]>(...sources: [...ObservableInputTuple<A>]): Observable<A>;
+export declare function zip<A extends readonly unknown[], R>(...sourcesAndResultSelector: [...ObservableInputTuple<A>, (...values: A) => R]): Observable<R>;

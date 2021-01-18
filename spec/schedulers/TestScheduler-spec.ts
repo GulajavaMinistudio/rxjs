@@ -88,7 +88,7 @@ describe('TestScheduler', () => {
       ]);
     });
 
-    it('should suppport time progression syntax when runMode=true', () => {
+    it('should support time progression syntax when runMode=true', () => {
       const runMode = true;
       const result = TestScheduler.parseMarbles('10.2ms a 1.2s b 1m c|', { a: 'A', b: 'B', c: 'C' }, undefined, undefined, runMode);
       expect(result).deep.equal([
@@ -96,6 +96,16 @@ describe('TestScheduler', () => {
         { frame: 10.2 + 10 + (1.2 * 1000), notification: nextNotification('B') },
         { frame: 10.2 + 10 + (1.2 * 1000) + 10 + (1000 * 60), notification: nextNotification('C') },
         { frame: 10.2 + 10 + (1.2 * 1000) + 10 + (1000 * 60) + 10, notification: COMPLETE_NOTIFICATION }
+      ]);
+    });
+
+    it('should support emoji characters', () => {
+      const result = TestScheduler.parseMarbles('--🙈--🙉--🙊--|');
+      expect(result).deep.equal([
+        { frame: 20, notification: nextNotification('🙈') },
+        { frame: 50, notification: nextNotification('🙉') },
+        { frame: 80, notification: nextNotification('🙊') },
+        { frame: 110, notification: COMPLETE_NOTIFICATION }
       ]);
     });
   });
@@ -387,14 +397,18 @@ describe('TestScheduler', () => {
         expect(expectObservable).to.be.a('function');
         expect(expectSubscriptions).to.be.a('function');
 
-        const obs1 = cold('-a-c-e|');
+      const obs1 = cold('-a-c-e|');
         const obs2 = hot(' ^-b-d-f|');
         const output = merge(obs1, obs2);
         const expected = ' -abcdef|';
 
         expectObservable(output).toBe(expected);
-        expectSubscriptions(obs1.subscriptions).toBe('^-----!');
-        expectSubscriptions(obs2.subscriptions).toBe('^------!');
+        expectObservable(output).toEqual(cold(expected));
+        // There are two subscriptions to each of these, because we merged
+        // them together, then we subscribed to the merged result once
+        // to check `toBe` and another time to check `toEqual`.
+        expectSubscriptions(obs1.subscriptions).toBe(['^-----!', '^-----!']);
+        expectSubscriptions(obs2.subscriptions).toBe(['^------!', '^------!']);
       });
     });
 

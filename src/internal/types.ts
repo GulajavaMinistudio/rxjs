@@ -6,6 +6,22 @@
 import { Observable } from './Observable';
 import { Subscription } from './Subscription';
 
+/**
+ * NOTE: This will add Symbol.observable globally for all TypeScript users,
+ * however, we are no longer polyfilling Symbol.observable. Note that this will be at
+ * odds with older version of @types/node and symbol-observable which incorrectly define
+ * `Symbol.observable` as `symbol` rather than `unique symbol`. "What about not defining
+ * this non-standard symbol at all?" you might ask... Well, that ship has sailed. There are
+ * dozens of libraries using this symbol now and many of them are quite popular.
+ * So here we are, and it's probably my fault. Sorry, "the web", if I have hurt you,
+ * the world just needed a standard way to provide interop for these types. -Ben
+ */
+declare global {
+  interface SymbolConstructor {
+    readonly observable: unique symbol;
+  }
+}
+
 /** OPERATOR INTERFACES */
 
 export interface UnaryFunction<T, R> {
@@ -71,14 +87,7 @@ export type SubscribableOrPromise<T> = Subscribable<T> | Subscribable<never> | P
 /** OBSERVABLE INTERFACES */
 
 export interface Subscribable<T> {
-  subscribe(observer?: PartialObserver<T>): Unsubscribable;
-  /** @deprecated Use an observer instead of a complete callback */
-  subscribe(next: null | undefined, error: null | undefined, complete: () => void): Unsubscribable;
-  /** @deprecated Use an observer instead of an error callback */
-  subscribe(next: null | undefined, error: (error: any) => void, complete?: () => void): Unsubscribable;
-  /** @deprecated Use an observer instead of a complete callback */
-  subscribe(next: (value: T) => void, error: null | undefined, complete: () => void): Unsubscribable;
-  subscribe(next?: (value: T) => void, error?: (error: any) => void, complete?: () => void): Unsubscribable;
+  subscribe(observer: Partial<Observer<T>>): Unsubscribable;
 }
 
 /**
@@ -158,11 +167,12 @@ export interface CompletionObserver<T> {
 export type PartialObserver<T> = NextObserver<T> | ErrorObserver<T> | CompletionObserver<T>;
 
 export interface Observer<T> {
-  closed?: boolean;
   next: (value: T) => void;
   error: (err: any) => void;
   complete: () => void;
 }
+
+export interface SubjectLike<T> extends Observer<T>, Subscribable<T> {}
 
 /** SCHEDULER INTERFACES */
 
@@ -217,37 +227,37 @@ export type ObservedValueTupleFromArray<X> = { [K in keyof X]: ObservedValueOf<X
 
 /**
  * Used to infer types from arguments to functions like {@link forkJoin}.
- * So that you can have `forkJoin([Observable<A>, PromiseLike<B>]): Observable<[A, B]>` 
+ * So that you can have `forkJoin([Observable<A>, PromiseLike<B>]): Observable<[A, B]>`
  * et al.
  */
 export type ObservableInputTuple<T> = {
-  [K in keyof T]: ObservableInput<T[K]>
-}
+  [K in keyof T]: ObservableInput<T[K]>;
+};
 
 /**
  * Constructs a new tuple with the specified type at the head.
  * If you declare `Cons<A, [B, C]>` you will get back `[A, B, C]`.
  */
-export type Cons<X, Y extends any[]> = ((arg: X, ...rest: Y) => any) extends (...args: infer U) => any ? U : never;
+export type Cons<X, Y extends readonly any[]> = ((arg: X, ...rest: Y) => any) extends (...args: infer U) => any ? U : never;
 
 /**
  * Extracts the head of a tuple.
  * If you declare `Head<[A, B, C]>` you will get back `A`.
  */
-export type Head<X extends any[]> = ((...args: X) => any) extends (arg: infer U, ...rest: any[]) => any ? U : never;
+export type Head<X extends readonly any[]> = ((...args: X) => any) extends (arg: infer U, ...rest: any[]) => any ? U : never;
 
 /**
  * Extracts the tail of a tuple.
  * If you declare `Tail<[A, B, C]>` you will get back `[B, C]`.
  */
-export type Tail<X extends any[]> = ((...args: X) => any) extends (arg: any, ...rest: infer U) => any ? U : never;
+export type Tail<X extends readonly any[]> = ((...args: X) => any) extends (arg: any, ...rest: infer U) => any ? U : never;
 
 /**
  * Extracts the generic value from an Array type.
  * If you have `T extends Array<any>`, and pass a `string[]` to it,
  * `ValueFromArray<T>` will return the actual type of `string`.
  */
-export type ValueFromArray<A> = A extends Array<infer T> ? T : never;
+export type ValueFromArray<A extends readonly unknown[]> = A extends Array<infer T> ? T : never;
 
 /**
  * Gets the value type from an {@link ObservableNotification}, if possible.
@@ -259,3 +269,12 @@ export type ValueFromNotification<T> = T extends { kind: 'N' | 'E' | 'C' }
       : undefined
     : never
   : never;
+
+/**
+ * A simple type to represent a gamut of "falsy" values... with a notable exception:
+ * `NaN` is "falsy" however, it is not and cannot be typed via TypeScript. See
+ * comments here: https://github.com/microsoft/TypeScript/issues/28682#issuecomment-707142417
+ */
+export type Falsy = null | undefined | false | 0 | -0 | 0n | '';
+
+export type TruthyTypesOf<T> = T extends Falsy ? never : T;
