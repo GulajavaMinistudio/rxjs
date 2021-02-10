@@ -1,4 +1,3 @@
-/** @prettier */
 import { Observable } from '../Observable';
 import { EmptyError } from '../util/EmptyError';
 import { OperatorFunction, TruthyTypesOf } from '../types';
@@ -19,8 +18,6 @@ export function first<T, S extends T, D>(
   predicate: (value: T, index: number, source: Observable<T>) => value is S,
   defaultValue: D
 ): OperatorFunction<T, S | D>;
-export function first<T, D>(predicate: (value: T, index: number, source: Observable<T>) => false, defaultValue: D): OperatorFunction<T, D>;
-export function first<T>(predicate: (value: T, index: number, source: Observable<T>) => false): OperatorFunction<T, never>;
 export function first<T, D = T>(
   predicate: (value: T, index: number, source: Observable<T>) => boolean,
   defaultValue?: D

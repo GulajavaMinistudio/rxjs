@@ -1,4 +1,3 @@
-/** @prettier */
 import { Observable } from '../Observable';
 import { EmptyError } from '../util/EmptyError';
 
@@ -9,7 +8,6 @@ import { operate } from '../util/lift';
 import { OperatorSubscriber } from './OperatorSubscriber';
 
 export function single<T>(predicate: BooleanConstructor): OperatorFunction<T, TruthyTypesOf<T>>;
-export function single<T>(predicate: (value: T, index: number, source: Observable<T>) => false): OperatorFunction<T, never>;
 export function single<T>(predicate?: (value: T, index: number, source: Observable<T>) => boolean): MonoTypeOperatorFunction<T>;
 
 /**

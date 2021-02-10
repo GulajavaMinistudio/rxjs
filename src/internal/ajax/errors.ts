@@ -1,4 +1,3 @@
-/** @prettier */
 import { AjaxRequest } from './types';
 import { getXHRResponse } from './getXHRResponse';
 import { createErrorClass } from '../util/createErrorClass';
@@ -52,7 +51,7 @@ export interface AjaxErrorCtor {
  * the constructor.
  *
  * @class AjaxError
- * @see ajax
+ * @see {@link ajax}
  */
 export const AjaxError: AjaxErrorCtor = createErrorClass(
   (_super) =>
@@ -93,7 +92,7 @@ export interface AjaxTimeoutErrorCtor {
  * this type.
  *
  * @class AjaxTimeoutError
- * @see ajax
+ * @see {@link ajax}
  */
 export const AjaxTimeoutError: AjaxTimeoutErrorCtor = (() => {
   function AjaxTimeoutErrorImpl(this: any, xhr: XMLHttpRequest, request: AjaxRequest) {

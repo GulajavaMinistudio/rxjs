@@ -1,4 +1,3 @@
-/** @prettier */
 import { Subject } from '../Subject';
 import { asyncScheduler } from '../scheduler/async';
 import { Observable } from '../Observable';
@@ -98,7 +97,7 @@ export function windowTime<T>(
  * values each window can emit before completion.
  * @param scheduler The scheduler on which to schedule the
  * intervals that determine window boundaries.
- * @returnAn observable of windows, which in turn are Observables.
+ * @return An observable of windows, which in turn are Observables.
  */
 export function windowTime<T>(windowTimeSpan: number, ...otherArgs: any[]): OperatorFunction<T, Observable<T>> {
   const scheduler = popScheduler(otherArgs) ?? asyncScheduler;
