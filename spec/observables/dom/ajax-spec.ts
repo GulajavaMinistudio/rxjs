@@ -78,7 +78,9 @@ describe('ajax', () => {
       withCredentials: true,
     };
 
-    ajax(obj).subscribe(null, (err) => expect(err).to.exist);
+    ajax(obj).subscribe({
+      error: (err) => expect(err).to.exist,
+    });
   });
 
   it('should set headers', () => {
@@ -294,7 +296,6 @@ describe('ajax', () => {
 
     MockXMLHttpRequest.mostRecent.respondWith({
       status: 200,
-      responseType: 'json',
       responseText: JSON.stringify(expected),
     });
 
@@ -307,7 +308,6 @@ describe('ajax', () => {
     let error: any;
     const obj: AjaxConfig = {
       url: '/flibbertyJibbet',
-      responseType: 'json',
       method: '',
     };
 
@@ -328,7 +328,6 @@ describe('ajax', () => {
 
     MockXMLHttpRequest.mostRecent.respondWith({
       status: 207,
-      responseType: 'json',
       responseText: 'Wee! I am text, but should be valid JSON!',
     });
 
@@ -360,7 +359,6 @@ describe('ajax', () => {
 
     MockXMLHttpRequest.mostRecent.respondWith({
       status: 404,
-      responseType: 'text',
       responseText: 'Wee! I am text!',
     });
 
@@ -393,7 +391,6 @@ describe('ajax', () => {
 
     MockXMLHttpRequest.mostRecent.respondWith({
       status: 300,
-      responseType: 'text',
       responseText: 'Wee! I am text!',
     });
 
@@ -424,12 +421,14 @@ describe('ajax', () => {
 
     MockXMLHttpRequest.mostRecent.respondWith({
       status: 404,
-      responseType: 'text',
-      responseText: 'This is not what we expected is it? But that is okay',
+      responseText: 'Unparsable as json',
     });
 
     expect(error instanceof AjaxError).to.be.true;
-    expect(error.response).to.equal('This is not what we expected is it? But that is okay');
+    // The default behavior of XHR if you get something back that you can't
+    // parse as JSON, but you have a requestType of "json" is to
+    // have `response` set to `null`.
+    expect(error.response).to.be.null;
   });
 
   it('should succeed no settings', () => {
@@ -449,7 +448,6 @@ describe('ajax', () => {
     expect(MockXMLHttpRequest.mostRecent.url).to.equal('/flibbertyJibbet');
     MockXMLHttpRequest.mostRecent.respondWith({
       status: 200,
-      responseType: 'text',
       responseText: expected,
     });
   });
@@ -474,7 +472,6 @@ describe('ajax', () => {
     expect(MockXMLHttpRequest.mostRecent.url).to.equal('/flibbertyJibbet');
     MockXMLHttpRequest.mostRecent.respondWith({
       status: 500,
-      responseType: 'text',
       responseText: expected,
     });
   });
@@ -505,7 +502,6 @@ describe('ajax', () => {
 
     request.respondWith({
       status: 200,
-      responseType: 'text',
       responseText: 'Wee! I am text!',
     });
   });
@@ -539,7 +535,6 @@ describe('ajax', () => {
     rxTestScheduler.schedule(() => {
       request.respondWith({
         status: 200,
-        responseType: 'text',
         responseText: 'Wee! I am text!',
       });
     }, 1000);
@@ -565,7 +560,6 @@ describe('ajax', () => {
 
     mockXHR.respondWith({
       status: 200,
-      responseType: 'text',
       responseText: 'Wee! I am text!',
     });
   });
@@ -707,7 +701,6 @@ describe('ajax', () => {
 
       request.respondWith({
         status: 200,
-        responseType: 'json',
         responseText: JSON.stringify(expected),
       });
 
@@ -735,11 +728,13 @@ describe('ajax', () => {
 
       request.respondWith({
         status: 204,
-        responseType: '',
         responseText: '',
       });
 
-      expect(result).to.deep.equal(undefined);
+      // Response will get set to null by the browser XHR
+      // This is sort of arbitrarily determined by our test harness
+      // but we want to be as accurate as possible.
+      expect(result).to.be.null;
       expect(complete).to.be.true;
     });
 
@@ -764,7 +759,6 @@ describe('ajax', () => {
 
       request.respondWith({
         status: 200,
-        responseType: 'json',
         responseText: JSON.stringify(expected),
       });
 
@@ -800,7 +794,6 @@ describe('ajax', () => {
 
       request.respondWith({
         status: 200,
-        responseType: 'json',
         responseText: JSON.stringify(expected),
       });
 
@@ -833,11 +826,13 @@ describe('ajax', () => {
 
       request.respondWith({
         status: 204,
-        responseType: '',
         responseText: '',
       });
 
-      expect(result!.response).to.equal(undefined);
+      // Since the default setting for `responseType` is "json",
+      // and our `responseText` is an empty string (which isn't parsable as JSON),
+      // response should be `null` here.
+      expect(result!.response).to.be.null;
       expect(complete).to.be.true;
     });
 
@@ -857,7 +852,6 @@ describe('ajax', () => {
       request.respondWith(
         {
           status: 200,
-          responseType: 'json',
           responseText: JSON.stringify({}),
         },
         { uploadProgressTimes: 3 }
@@ -888,7 +882,6 @@ describe('ajax', () => {
       request.respondWith(
         {
           status: 200,
-          responseType: 'json',
           responseText: JSON.stringify({}),
         },
         { uploadProgressTimes: 3 }
@@ -896,56 +889,6 @@ describe('ajax', () => {
 
       expect(spy).to.be.called.callCount(4);
     });
-  });
-
-  it('should work fine when XMLHttpRequest ontimeout property is monkey patched', function (done) {
-    Object.defineProperty(root.XMLHttpRequest.prototype, 'ontimeout', {
-      set(fn: (e: ProgressEvent) => any) {
-        const wrapFn = (ev: ProgressEvent) => {
-          const result = fn.call(this, ev);
-          if (result === false) {
-            ev.preventDefault();
-          }
-        };
-        this['_ontimeout'] = wrapFn;
-      },
-      get() {
-        return this['_ontimeout'];
-      },
-      configurable: true,
-    });
-
-    const ajaxRequest: AjaxConfig = {
-      url: '/flibbertyJibbet',
-    };
-
-    ajax(ajaxRequest).subscribe({
-      error(err) {
-        expect(err.name).to.equal('AjaxTimeoutError');
-        done();
-      },
-    });
-
-    const request = MockXMLHttpRequest.mostRecent;
-    try {
-      request.ontimeout('ontimeout' as any);
-    } catch (e) {
-      expect(e.message).to.equal(
-        new AjaxTimeoutError(request as any, {
-          url: ajaxRequest.url,
-          method: 'GET',
-          headers: {
-            'content-type': 'application/json;encoding=Utf-8',
-          },
-          withCredentials: false,
-          async: true,
-          timeout: 0,
-          crossDomain: false,
-          responseType: 'json',
-        }).message
-      );
-    }
-    delete root.XMLHttpRequest.prototype.ontimeout;
   });
 
   describe('ajax.patch', () => {
@@ -975,7 +918,6 @@ describe('ajax', () => {
 
       request.respondWith({
         status: 200,
-        responseType: 'json',
         responseText: JSON.stringify(expected),
       });
 
@@ -1033,6 +975,29 @@ describe('ajax', () => {
     });
   });
 
+  it('should error if aborted early', () => {
+    let thrown: any = null;
+
+    ajax({
+      method: 'GET',
+      url: '/flibbertyJibbett',
+    }).subscribe({
+      next: () => {
+        throw new Error('should not be called');
+      },
+      error: (err) => {
+        thrown = err;
+      },
+    });
+
+    const mockXHR = MockXMLHttpRequest.mostRecent;
+    expect(thrown).to.be.null;
+
+    mockXHR.triggerEvent('abort', { type: 'abort' });
+    expect(thrown).to.be.an.instanceOf(AjaxError);
+    expect(thrown.message).to.equal('aborted');
+  });
+
   describe('with includeDownloadProgress', () => {
     it('should emit download progress', () => {
       const results: any[] = [];
@@ -1052,7 +1017,6 @@ describe('ajax', () => {
           status: 200,
           total: 5,
           loaded: 5,
-          responseType: 'json',
           responseText: JSON.stringify({ boo: 'I am a ghost' }),
         },
         { uploadProgressTimes: 5, downloadProgressTimes: 5 }
@@ -1067,7 +1031,7 @@ describe('ajax', () => {
         },
         includeDownloadProgress: true,
         method: 'GET',
-        responseType: '',
+        responseType: 'json',
         timeout: 0,
         url: '/flibbertyJibbett',
         withCredentials: false,
@@ -1076,7 +1040,8 @@ describe('ajax', () => {
       expect(results).to.deep.equal([
         {
           type: 'download_loadstart',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 0,
           total: 5,
@@ -1087,7 +1052,8 @@ describe('ajax', () => {
         },
         {
           type: 'download_progress',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 1,
           total: 5,
@@ -1098,7 +1064,8 @@ describe('ajax', () => {
         },
         {
           type: 'download_progress',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 2,
           total: 5,
@@ -1109,7 +1076,8 @@ describe('ajax', () => {
         },
         {
           type: 'download_progress',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 3,
           total: 5,
@@ -1120,7 +1088,8 @@ describe('ajax', () => {
         },
         {
           type: 'download_progress',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 4,
           total: 5,
@@ -1131,7 +1100,8 @@ describe('ajax', () => {
         },
         {
           type: 'download_progress',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 5,
           total: 5,
@@ -1148,6 +1118,7 @@ describe('ajax', () => {
           originalEvent: { type: 'load', loaded: 5, total: 5 },
           xhr: mockXHR,
           response: { boo: 'I am a ghost' },
+          responseHeaders: {},
           responseType: 'json',
           status: 200,
         },
@@ -1174,7 +1145,6 @@ describe('ajax', () => {
           status: 200,
           total: 5,
           loaded: 5,
-          responseType: 'json',
           responseText: JSON.stringify({ boo: 'I am a ghost' }),
         },
         { uploadProgressTimes: 5, downloadProgressTimes: 5 }
@@ -1190,7 +1160,7 @@ describe('ajax', () => {
         includeUploadProgress: true,
         includeDownloadProgress: true,
         method: 'GET',
-        responseType: '',
+        responseType: 'json',
         timeout: 0,
         url: '/flibbertyJibbett',
         withCredentials: false,
@@ -1204,7 +1174,8 @@ describe('ajax', () => {
           request,
           status: 0,
           response: undefined,
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           xhr: mockXHR,
           originalEvent: { type: 'loadstart', loaded: 0, total: 5 },
         },
@@ -1215,7 +1186,8 @@ describe('ajax', () => {
           request,
           status: 0,
           response: undefined,
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           xhr: mockXHR,
           originalEvent: { type: 'progress', loaded: 1, total: 5 },
         },
@@ -1226,7 +1198,8 @@ describe('ajax', () => {
           request,
           status: 0,
           response: undefined,
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           xhr: mockXHR,
           originalEvent: { type: 'progress', loaded: 2, total: 5 },
         },
@@ -1237,7 +1210,8 @@ describe('ajax', () => {
           request,
           status: 0,
           response: undefined,
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           xhr: mockXHR,
           originalEvent: { type: 'progress', loaded: 3, total: 5 },
         },
@@ -1248,7 +1222,8 @@ describe('ajax', () => {
           request,
           status: 0,
           response: undefined,
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           xhr: mockXHR,
           originalEvent: { type: 'progress', loaded: 4, total: 5 },
         },
@@ -1259,7 +1234,8 @@ describe('ajax', () => {
           request,
           status: 0,
           response: undefined,
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           xhr: mockXHR,
           originalEvent: { type: 'progress', loaded: 5, total: 5 },
         },
@@ -1270,13 +1246,15 @@ describe('ajax', () => {
           request,
           status: 0,
           response: undefined,
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           xhr: mockXHR,
           originalEvent: { type: 'load', loaded: 5, total: 5 },
         },
         {
           type: 'download_loadstart',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 0,
           total: 5,
@@ -1287,7 +1265,8 @@ describe('ajax', () => {
         },
         {
           type: 'download_progress',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 1,
           total: 5,
@@ -1298,7 +1277,8 @@ describe('ajax', () => {
         },
         {
           type: 'download_progress',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 2,
           total: 5,
@@ -1309,7 +1289,8 @@ describe('ajax', () => {
         },
         {
           type: 'download_progress',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 3,
           total: 5,
@@ -1320,7 +1301,8 @@ describe('ajax', () => {
         },
         {
           type: 'download_progress',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 4,
           total: 5,
@@ -1331,7 +1313,8 @@ describe('ajax', () => {
         },
         {
           type: 'download_progress',
-          responseType: '',
+          responseHeaders: {},
+          responseType: 'json',
           response: undefined,
           loaded: 5,
           total: 5,
@@ -1348,12 +1331,40 @@ describe('ajax', () => {
           originalEvent: { type: 'load', loaded: 5, total: 5 },
           xhr: mockXHR,
           response: { boo: 'I am a ghost' },
+          responseHeaders: {},
           responseType: 'json',
           status: 200,
         },
         'done', // from completion.
       ]);
     });
+  });
+
+  it('should return an object that allows access to response headers', () => {
+    const sentResponseHeaders = {
+      'content-type': 'application/json',
+      'x-custom-header': 'test',
+      'x-headers-are-fun': '<whatever/> {"weird": "things"}',
+    };
+
+    ajax({
+      method: 'GET',
+      url: '/whatever',
+    }).subscribe((response) => {
+      expect(response.responseHeaders).to.deep.equal(sentResponseHeaders);
+    });
+
+    const mockXHR = MockXMLHttpRequest.mostRecent;
+
+    mockXHR.respondWith({
+      status: 200,
+      headers: sentResponseHeaders,
+      responseText: JSON.stringify({ iam: 'tired', and: 'should go to bed', but: 'I am doing open source for no good reason' }),
+    });
+
+    expect(mockXHR.getAllResponseHeaders()).to.equal(`content-type: application/json
+x-custom-header: test
+x-headers-are-fun: <whatever/> {"weird": "things"}`);
   });
 });
 
@@ -1486,11 +1497,21 @@ class MockXMLHttpRequest extends MockXHREventTarget {
     this.requestHeaders[key] = value;
   }
 
+  private _responseHeaders: any;
+
+  getAllResponseHeaders() {
+    return this._responseHeaders
+      ? Object.entries(this._responseHeaders)
+          .map((entryParts) => entryParts.join(': '))
+          .join('\n')
+      : '';
+  }
+
   respondWith(
     response: {
       status?: number;
+      headers?: any;
       responseText?: string | undefined;
-      responseType: XMLHttpRequestResponseType;
       total?: number;
       loaded?: number;
     },
@@ -1515,13 +1536,15 @@ class MockXMLHttpRequest extends MockXHREventTarget {
       }
     }
 
-    // Set the readyState to 4.
+    // Store our headers locally. This is used in `getAllResponseHeaders` mock impl.
+    this._responseHeaders = response.headers;
+
+    // Set the readyState to DONE (4)
     this.readyState = 4;
 
-    // Default to OK 200.
+    // Default to OK
     this.status = response.status || 200;
     this.responseText = response.responseText;
-    this.responseType = response.responseType;
 
     switch (this.responseType) {
       case 'json':
@@ -1532,14 +1555,17 @@ class MockXMLHttpRequest extends MockXHREventTarget {
           // response somehow, where responseType is "json" but the responseText
           // is not JSON. In truth, we need to invert these tests to just use
           // response, because `responseText` is a legacy path.
-          this.response = undefined;
+          this.response = null;
         }
         break;
+      case 'arraybuffer':
+      case 'document':
+      case 'blob':
+        throw new Error('Test harness does not support the responseType: ' + this.responseType);
       case 'text':
-        this.response = response.responseText;
-        break;
+      case '':
       default:
-        // response remains undefined
+        this.response = response.responseText;
         break;
     }
 

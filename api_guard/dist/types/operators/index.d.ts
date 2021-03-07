@@ -68,7 +68,7 @@ export declare function debounce<T>(durationSelector: (value: T) => ObservableIn
 
 export declare function debounceTime<T>(dueTime: number, scheduler?: SchedulerLike): MonoTypeOperatorFunction<T>;
 
-export declare function defaultIfEmpty<T, R = T>(defaultValue?: R): OperatorFunction<T, T | R>;
+export declare function defaultIfEmpty<T, R>(defaultValue: R): OperatorFunction<T, T | R>;
 
 export declare function delay<T>(due: number | Date, scheduler?: SchedulerLike): MonoTypeOperatorFunction<T>;
 
@@ -80,13 +80,14 @@ export declare function dematerialize<N extends ObservableNotification<any>>(): 
 
 export declare function distinct<T, K>(keySelector?: (value: T) => K, flushes?: Observable<any>): MonoTypeOperatorFunction<T>;
 
-export declare function distinctUntilChanged<T>(compare?: (x: T, y: T) => boolean): MonoTypeOperatorFunction<T>;
-export declare function distinctUntilChanged<T, K>(compare: (x: K, y: K) => boolean, keySelector: (x: T) => K): MonoTypeOperatorFunction<T>;
+export declare function distinctUntilChanged<T>(comparator?: (previous: T, current: T) => boolean): MonoTypeOperatorFunction<T>;
+export declare function distinctUntilChanged<T, K>(comparator: (previous: K, current: K) => boolean, keySelector: (value: T) => K): MonoTypeOperatorFunction<T>;
 
 export declare function distinctUntilKeyChanged<T>(key: keyof T): MonoTypeOperatorFunction<T>;
 export declare function distinctUntilKeyChanged<T, K extends keyof T>(key: K, compare: (x: T[K], y: T[K]) => boolean): MonoTypeOperatorFunction<T>;
 
-export declare function elementAt<T>(index: number, defaultValue?: T): MonoTypeOperatorFunction<T>;
+export declare function elementAt<T>(index: number): MonoTypeOperatorFunction<T>;
+export declare function elementAt<T, D>(index: number, defaultValue: D): OperatorFunction<T, T | D>;
 
 export declare function endWith<T>(scheduler: SchedulerLike): MonoTypeOperatorFunction<T>;
 export declare function endWith<T, A>(v1: A, scheduler: SchedulerLike): OperatorFunction<T, T | A>;
@@ -100,8 +101,10 @@ export declare function endWith<T, A extends any[] = T[]>(...args: A): OperatorF
 export declare function every<T>(predicate: BooleanConstructor, thisArg?: any): OperatorFunction<T, Exclude<T, Falsy> extends never ? false : boolean>;
 export declare function every<T>(predicate: (value: T, index: number, source: Observable<T>) => boolean, thisArg?: any): OperatorFunction<T, boolean>;
 
-export declare function exhaust<T>(): OperatorFunction<ObservableInput<T>, T>;
-export declare function exhaust<R>(): OperatorFunction<any, R>;
+export declare const exhaust: typeof exhaustAll;
+
+export declare function exhaustAll<T>(): OperatorFunction<ObservableInput<T>, T>;
+export declare function exhaustAll<R>(): OperatorFunction<any, R>;
 
 export declare function exhaustMap<T, O extends ObservableInput<any>>(project: (value: T, index: number) => O): OperatorFunction<T, ObservedValueOf<O>>;
 export declare function exhaustMap<T, O extends ObservableInput<any>>(project: (value: T, index: number) => O, resultSelector: undefined): OperatorFunction<T, ObservedValueOf<O>>;

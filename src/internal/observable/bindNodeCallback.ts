@@ -1,3 +1,4 @@
+/* @prettier */
 import { Observable } from '../Observable';
 import { SchedulerLike } from '../types';
 import { bindCallbackInternals } from './bindCallbackInternals';
@@ -120,7 +121,7 @@ export function bindNodeCallback<A extends readonly unknown[], R extends readonl
  * deliver.
  */
 export function bindNodeCallback(
-  callbackFunc: (...args: any[]) => void,
+  callbackFunc: (...args: [...any[], (err: any, ...res: any) => void]) => void,
   resultSelector?: ((...args: any[]) => any) | SchedulerLike,
   scheduler?: SchedulerLike
 ): (...args: any[]) => Observable<any> {
