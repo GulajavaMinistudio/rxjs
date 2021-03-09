@@ -16,10 +16,7 @@ export declare function bufferWhen<T>(closingSelector: () => ObservableInput<any
 
 export declare function catchError<T, O extends ObservableInput<any>>(selector: (err: any, caught: Observable<T>) => O): OperatorFunction<T, T | ObservedValueOf<O>>;
 
-export declare function combineAll<T>(): OperatorFunction<ObservableInput<T>, T[]>;
-export declare function combineAll<T>(): OperatorFunction<any, T[]>;
-export declare function combineAll<T, R>(project: (...values: T[]) => R): OperatorFunction<ObservableInput<T>, R>;
-export declare function combineAll<R>(project: (...values: Array<any>) => R): OperatorFunction<any, R>;
+export declare const combineAll: typeof combineLatestAll;
 
 export declare function combineLatest<T, R>(project: (v1: T) => R): OperatorFunction<T, R>;
 export declare function combineLatest<T, T2, R>(v2: ObservableInput<T2>, project: (v1: T, v2: T2) => R): OperatorFunction<T, R>;
@@ -35,6 +32,11 @@ export declare function combineLatest<T, T2, T3, T4, T5, T6>(v2: ObservableInput
 export declare function combineLatest<T, R>(...observables: Array<ObservableInput<T> | ((...values: Array<T>) => R)>): OperatorFunction<T, R>;
 export declare function combineLatest<T, R>(array: ObservableInput<T>[]): OperatorFunction<T, Array<T>>;
 export declare function combineLatest<T, TOther, R>(array: ObservableInput<TOther>[], project: (v1: T, ...values: Array<TOther>) => R): OperatorFunction<T, R>;
+
+export declare function combineLatestAll<T>(): OperatorFunction<ObservableInput<T>, T[]>;
+export declare function combineLatestAll<T>(): OperatorFunction<any, T[]>;
+export declare function combineLatestAll<T, R>(project: (...values: T[]) => R): OperatorFunction<ObservableInput<T>, R>;
+export declare function combineLatestAll<R>(project: (...values: Array<any>) => R): OperatorFunction<any, R>;
 
 export declare function combineLatestWith<T, A extends readonly unknown[]>(...otherSources: [...ObservableInputTuple<A>]): OperatorFunction<T, Cons<T, A>>;
 
@@ -86,17 +88,11 @@ export declare function distinctUntilChanged<T, K>(comparator: (previous: K, cur
 export declare function distinctUntilKeyChanged<T>(key: keyof T): MonoTypeOperatorFunction<T>;
 export declare function distinctUntilKeyChanged<T, K extends keyof T>(key: K, compare: (x: T[K], y: T[K]) => boolean): MonoTypeOperatorFunction<T>;
 
-export declare function elementAt<T>(index: number): MonoTypeOperatorFunction<T>;
-export declare function elementAt<T, D>(index: number, defaultValue: D): OperatorFunction<T, T | D>;
+export declare function elementAt<T, D = T>(index: number, defaultValue?: D): OperatorFunction<T, T | D>;
 
 export declare function endWith<T>(scheduler: SchedulerLike): MonoTypeOperatorFunction<T>;
-export declare function endWith<T, A>(v1: A, scheduler: SchedulerLike): OperatorFunction<T, T | A>;
-export declare function endWith<T, A, B>(v1: A, v2: B, scheduler: SchedulerLike): OperatorFunction<T, T | A | B>;
-export declare function endWith<T, A, B, C>(v1: A, v2: B, v3: C, scheduler: SchedulerLike): OperatorFunction<T, T | A | B | C>;
-export declare function endWith<T, A, B, C, D>(v1: A, v2: B, v3: C, v4: D, scheduler: SchedulerLike): OperatorFunction<T, T | A | B | C | D>;
-export declare function endWith<T, A, B, C, D, E>(v1: A, v2: B, v3: C, v4: D, v5: E, scheduler: SchedulerLike): OperatorFunction<T, T | A | B | C | D | E>;
-export declare function endWith<T, A, B, C, D, E, F>(v1: A, v2: B, v3: C, v4: D, v5: E, v6: F, scheduler: SchedulerLike): OperatorFunction<T, T | A | B | C | D | E | F>;
-export declare function endWith<T, A extends any[] = T[]>(...args: A): OperatorFunction<T, T | ValueFromArray<A>>;
+export declare function endWith<T, A extends unknown[] = T[]>(...args: [...A, SchedulerLike]): OperatorFunction<T, T | ValueFromArray<A>>;
+export declare function endWith<T, A extends unknown[] = T[]>(...args: A): OperatorFunction<T, T | ValueFromArray<A>>;
 
 export declare function every<T>(predicate: BooleanConstructor, thisArg?: any): OperatorFunction<T, Exclude<T, Falsy> extends never ? false : boolean>;
 export declare function every<T>(predicate: (value: T, index: number, source: Observable<T>) => boolean, thisArg?: any): OperatorFunction<T, boolean>;
@@ -110,8 +106,8 @@ export declare function exhaustMap<T, O extends ObservableInput<any>>(project: (
 export declare function exhaustMap<T, O extends ObservableInput<any>>(project: (value: T, index: number) => O, resultSelector: undefined): OperatorFunction<T, ObservedValueOf<O>>;
 export declare function exhaustMap<T, I, R>(project: (value: T, index: number) => ObservableInput<I>, resultSelector: (outerValue: T, innerValue: I, outerIndex: number, innerIndex: number) => R): OperatorFunction<T, R>;
 
-export declare function expand<T, R>(project: (value: T, index: number) => ObservableInput<R>, concurrent?: number, scheduler?: SchedulerLike): OperatorFunction<T, R>;
-export declare function expand<T, R>(project: (value: T, index: number) => ObservableInput<R>, concurrent: number | undefined, scheduler: SchedulerLike): OperatorFunction<T, R>;
+export declare function expand<T, O extends ObservableInput<unknown>>(project: (value: T, index: number) => O, concurrent?: number, scheduler?: SchedulerLike): OperatorFunction<T, ObservedValueOf<O>>;
+export declare function expand<T, O extends ObservableInput<unknown>>(project: (value: T, index: number) => O, concurrent: number | undefined, scheduler: SchedulerLike): OperatorFunction<T, ObservedValueOf<O>>;
 
 export declare function filter<T, S extends T>(predicate: (value: T, index: number) => value is S, thisArg?: any): OperatorFunction<T, S>;
 export declare function filter<T>(predicate: BooleanConstructor): OperatorFunction<T, TruthyTypesOf<T>>;
@@ -123,7 +119,6 @@ export declare function find<T>(predicate: BooleanConstructor): OperatorFunction
 export declare function find<T, S extends T>(predicate: (value: T, index: number, source: Observable<T>) => value is S, thisArg?: any): OperatorFunction<T, S | undefined>;
 export declare function find<T>(predicate: (value: T, index: number, source: Observable<T>) => boolean, thisArg?: any): OperatorFunction<T, T | undefined>;
 
-export declare function findIndex<T>(predicate: (value: T, index: number, source: Observable<T>) => false, thisArg?: any): OperatorFunction<T, -1>;
 export declare function findIndex<T>(predicate: BooleanConstructor, thisArg?: any): OperatorFunction<T, T extends Falsy ? -1 : number>;
 export declare function findIndex<T>(predicate: (value: T, index: number, source: Observable<T>) => boolean, thisArg?: any): OperatorFunction<T, number>;
 
