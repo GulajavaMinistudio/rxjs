@@ -52,7 +52,7 @@ export declare function combineLatest<A extends readonly unknown[]>(...args: [..
 export declare function combineLatest(sourcesObject: {
     [K in any]: never;
 }): Observable<never>;
-export declare function combineLatest<T>(sourcesObject: T): Observable<{
+export declare function combineLatest<T extends Record<string, ObservableInput<any>>>(sourcesObject: T): Observable<{
     [K in keyof T]: ObservedValueOf<T[K]>;
 }>;
 export declare function combineLatest<O extends ObservableInput<any>, R>(array: O[], resultSelector: (...values: ObservedValueOf<O>[]) => R, scheduler?: SchedulerLike): Observable<R>;
@@ -129,6 +129,7 @@ export declare type Falsy = null | undefined | false | 0 | -0 | 0n | '';
 
 export declare function firstValueFrom<T>(source: Observable<T>): Promise<T>;
 
+export declare function forkJoin(scheduler: null | undefined): Observable<never>;
 export declare function forkJoin(sources: readonly []): Observable<never>;
 export declare function forkJoin<A extends readonly unknown[]>(sources: readonly [...ObservableInputTuple<A>]): Observable<A>;
 export declare function forkJoin<A extends readonly unknown[], R>(sources: readonly [...ObservableInputTuple<A>], resultSelector: (...values: A) => R): Observable<R>;
@@ -137,7 +138,7 @@ export declare function forkJoin<A extends readonly unknown[], R>(...sourcesAndR
 export declare function forkJoin(sourcesObject: {
     [K in any]: never;
 }): Observable<never>;
-export declare function forkJoin<T>(sourcesObject: T): Observable<{
+export declare function forkJoin<T extends Record<string, ObservableInput<any>>>(sourcesObject: T): Observable<{
     [K in keyof T]: ObservedValueOf<T[K]>;
 }>;
 
@@ -326,7 +327,8 @@ export declare function pairs(n: number | bigint | boolean | ((...args: any[]) =
 
 export declare type PartialObserver<T> = NextObserver<T> | ErrorObserver<T> | CompletionObserver<T>;
 
-export declare function partition<T>(source: ObservableInput<T>, predicate: (value: T, index: number) => boolean, thisArg?: any): [Observable<T>, Observable<T>];
+export declare function partition<T, A>(source: ObservableInput<T>, predicate: (this: A, value: T, index: number) => boolean, thisArg: A): [Observable<T>, Observable<T>];
+export declare function partition<T>(source: ObservableInput<T>, predicate: (value: T, index: number) => boolean): [Observable<T>, Observable<T>];
 
 export declare function pipe<T>(): UnaryFunction<T, T>;
 export declare function pipe<T, A>(fn1: UnaryFunction<T, A>): UnaryFunction<T, A>;
