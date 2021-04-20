@@ -9,6 +9,20 @@ import { mapOneOrManyArgs } from '../util/mapOneOrManyArgs';
 import { popResultSelector, popScheduler } from '../util/args';
 import { createObject } from '../util/createObject';
 import { OperatorSubscriber } from '../operators/OperatorSubscriber';
+import { AnyCatcher } from '../AnyCatcher';
+
+// combineLatest(any)
+// We put this first because we need to catch cases where the user has supplied
+// _exactly `any`_ as the argument. Since `any` literally matches _anything_,
+// we don't want it to randomly hit one of the other type signatures below,
+// as we have no idea at build-time what type we should be returning when given an any.
+
+/**
+ * You have passed `any` here, we can't figure out if it is
+ * an array or an object, so you're getting `unknown`. Use better types.
+ * @param arg Something typed as `any`
+ */
+export function combineLatest<T extends AnyCatcher>(arg: T): Observable<unknown>;
 
 // combineLatest([a, b, c])
 export function combineLatest(sources: []): Observable<never>;
@@ -16,13 +30,12 @@ export function combineLatest<A extends readonly unknown[]>(sources: readonly [.
 /** @deprecated The scheduler argument is deprecated, use scheduled and combineLatestAll. Details: https://rxjs.dev/deprecations/scheduler-argument */
 export function combineLatest<A extends readonly unknown[], R>(
   sources: readonly [...ObservableInputTuple<A>],
-  resultSelector: (...args: A) => R,
+  resultSelector: (...values: A) => R,
   scheduler: SchedulerLike
 ): Observable<R>;
-/** @deprecated resultSelector no longer supported, pipe to map instead, Details https://rxjs.dev/deprecations/resultSelector */
 export function combineLatest<A extends readonly unknown[], R>(
   sources: readonly [...ObservableInputTuple<A>],
-  resultSelector: (...args: A) => R
+  resultSelector: (...values: A) => R
 ): Observable<R>;
 /** @deprecated The scheduler argument is deprecated, use scheduled and combineLatestAll. Details: https://rxjs.dev/deprecations/scheduler-argument */
 export function combineLatest<A extends readonly unknown[]>(
@@ -35,12 +48,16 @@ export function combineLatest<A extends readonly unknown[]>(
 export function combineLatest<A extends readonly unknown[]>(...sources: [...ObservableInputTuple<A>]): Observable<A>;
 /** @deprecated The scheduler argument is deprecated, use scheduled and combineLatestAll. Details: https://rxjs.dev/deprecations/scheduler-argument */
 export function combineLatest<A extends readonly unknown[], R>(
-  ...args: [...ObservableInputTuple<A>, (...args: A) => R, SchedulerLike]
+  ...sourcesAndResultSelectorAndScheduler: [...ObservableInputTuple<A>, (...values: A) => R, SchedulerLike]
 ): Observable<R>;
-/** @deprecated resultSelector no longer supported, pipe to map instead, Details https://rxjs.dev/deprecations/resultSelector */
-export function combineLatest<A extends readonly unknown[], R>(...args: [...ObservableInputTuple<A>, (...args: A) => R]): Observable<R>;
+/** @deprecated Use the version that takes an array of Observables instead. (e.g. `combineLatest([a$, b$], (a, b) => a + b)`) */
+export function combineLatest<A extends readonly unknown[], R>(
+  ...sourcesAndResultSelector: [...ObservableInputTuple<A>, (...values: A) => R]
+): Observable<R>;
 /** @deprecated The scheduler argument is deprecated, use scheduled and combineLatestAll. Details: https://rxjs.dev/deprecations/scheduler-argument */
-export function combineLatest<A extends readonly unknown[]>(...args: [...ObservableInputTuple<A>, SchedulerLike]): Observable<A>;
+export function combineLatest<A extends readonly unknown[]>(
+  ...sourcesAndScheduler: [...ObservableInputTuple<A>, SchedulerLike]
+): Observable<A>;
 
 // combineLatest({a, b, c})
 export function combineLatest(sourcesObject: { [K in any]: never }): Observable<never>;
@@ -251,7 +268,6 @@ export function combineLatestInit(
                       subscriber.next(valueTransform(values.slice()));
                     }
                   },
-                  undefined,
                   () => {
                     if (!--active) {
                       // We only complete the result if we have no more active

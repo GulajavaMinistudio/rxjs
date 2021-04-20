@@ -11,6 +11,7 @@ export interface AjaxConfig {
     method?: string;
     password?: string;
     progressSubscriber?: PartialObserver<ProgressEvent>;
+    queryParams?: string | URLSearchParams | Record<string, string | number | boolean | string[] | number[] | boolean[]> | [string, string | number | boolean | string[] | number[] | boolean[]][];
     responseType?: XMLHttpRequestResponseType;
     timeout?: number;
     url: string;
@@ -19,6 +20,8 @@ export interface AjaxConfig {
     xsrfCookieName?: string;
     xsrfHeaderName?: string;
 }
+
+export declare type AjaxDirection = 'upload' | 'download';
 
 export interface AjaxError extends Error {
     request: AjaxRequest;

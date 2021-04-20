@@ -37,6 +37,7 @@ export class ConnectableObservable<T> extends Observable<T> {
     }
   }
 
+  /** @internal */
   protected _subscribe(subscriber: Subscriber<T>) {
     return this.getSubject().subscribe(subscriber);
   }
@@ -66,13 +67,13 @@ export class ConnectableObservable<T> extends Observable<T> {
           new OperatorSubscriber(
             subject as any,
             undefined,
-            (err) => {
-              this._teardown();
-              subject.error(err);
-            },
             () => {
               this._teardown();
               subject.complete();
+            },
+            (err) => {
+              this._teardown();
+              subject.error(err);
             },
             () => this._teardown()
           )

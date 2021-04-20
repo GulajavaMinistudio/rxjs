@@ -5,18 +5,12 @@ import { Observable } from './Observable';
 import { Subscription } from './Subscription';
 
 /**
- * NOTE: This will add Symbol.observable globally for all TypeScript users,
- * however, we are no longer polyfilling Symbol.observable. Note that this will be at
- * odds with older version of @types/node and symbol-observable which incorrectly define
- * `Symbol.observable` as `symbol` rather than `unique symbol`. "What about not defining
- * this non-standard symbol at all?" you might ask... Well, that ship has sailed. There are
- * dozens of libraries using this symbol now and many of them are quite popular.
- * So here we are, and it's probably my fault. Sorry, "the web", if I have hurt you,
- * the world just needed a standard way to provide interop for these types. -Ben
+ * Note: This will add Symbol.observable globally for all TypeScript users,
+ * however, we are no longer polyfilling Symbol.observable
  */
 declare global {
   interface SymbolConstructor {
-    readonly observable: unique symbol;
+    readonly observable: symbol;
   }
 }
 
@@ -91,7 +85,14 @@ export interface Subscribable<T> {
 /**
  * Valid types that can be converted to observables.
  */
-export type ObservableInput<T> = Observable<T> | InteropObservable<T> | AsyncIterable<T> | PromiseLike<T> | ArrayLike<T> | Iterable<T>;
+export type ObservableInput<T> =
+  | Observable<T>
+  | InteropObservable<T>
+  | AsyncIterable<T>
+  | PromiseLike<T>
+  | ArrayLike<T>
+  | Iterable<T>
+  | ReadableStreamLike<T>;
 
 /** @deprecated use {@link InteropObservable } */
 export type ObservableLike<T> = InteropObservable<T>;
@@ -276,3 +277,28 @@ export type ValueFromNotification<T> = T extends { kind: 'N' | 'E' | 'C' }
 export type Falsy = null | undefined | false | 0 | -0 | 0n | '';
 
 export type TruthyTypesOf<T> = T extends Falsy ? never : T;
+
+// We shouldn't rely on this type definition being available globally yet since it's
+// not necessarily available in every TS environment.
+interface ReadableStreamDefaultReaderLike<T> {
+  // HACK: As of TS 4.2.2, The provided types for the iterator results of a `ReadableStreamDefaultReader`
+  // are significantly different enough from `IteratorResult` as to cause compilation errors.
+  // The type at the time is `ReadableStreamDefaultReadResult`.
+  read(): PromiseLike<
+    | {
+        done: false;
+        value: T;
+      }
+    | { done: true; value?: undefined }
+  >;
+  releaseLock(): void;
+}
+
+/**
+ * The base signature RxJS will look for to identify and use
+ * a [ReadableStream](https://streams.spec.whatwg.org/#rs-class)
+ * as an {@link ObservableInput} source.
+ */
+export interface ReadableStreamLike<T> {
+  getReader(): ReadableStreamDefaultReaderLike<T>;
+}

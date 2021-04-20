@@ -21,7 +21,6 @@ export declare const async: AsyncScheduler;
 export declare const asyncScheduler: AsyncScheduler;
 
 export declare class AsyncSubject<T> extends Subject<T> {
-    protected _checkFinalizedStatuses(subscriber: Subscriber<T>): void;
     complete(): void;
     next(value: T): void;
 }
@@ -29,7 +28,6 @@ export declare class AsyncSubject<T> extends Subject<T> {
 export declare class BehaviorSubject<T> extends Subject<T> {
     get value(): T;
     constructor(_value: T);
-    protected _subscribe(subscriber: Subscriber<T>): Subscription;
     getValue(): T;
     next(value: T): void;
 }
@@ -40,15 +38,16 @@ export declare function bindCallback<A extends readonly unknown[], R extends rea
 export declare function bindNodeCallback(callbackFunc: (...args: any[]) => void, resultSelector: (...args: any[]) => any, scheduler?: SchedulerLike): (...args: any[]) => Observable<any>;
 export declare function bindNodeCallback<A extends readonly unknown[], R extends readonly unknown[]>(callbackFunc: (...args: [...A, (err: any, ...res: R) => void]) => void, schedulerLike?: SchedulerLike): (...arg: A) => Observable<R extends [] ? void : R extends [any] ? R[0] : R>;
 
+export declare function combineLatest<T extends AnyCatcher>(arg: T): Observable<unknown>;
 export declare function combineLatest(sources: []): Observable<never>;
 export declare function combineLatest<A extends readonly unknown[]>(sources: readonly [...ObservableInputTuple<A>]): Observable<A>;
-export declare function combineLatest<A extends readonly unknown[], R>(sources: readonly [...ObservableInputTuple<A>], resultSelector: (...args: A) => R, scheduler: SchedulerLike): Observable<R>;
-export declare function combineLatest<A extends readonly unknown[], R>(sources: readonly [...ObservableInputTuple<A>], resultSelector: (...args: A) => R): Observable<R>;
+export declare function combineLatest<A extends readonly unknown[], R>(sources: readonly [...ObservableInputTuple<A>], resultSelector: (...values: A) => R, scheduler: SchedulerLike): Observable<R>;
+export declare function combineLatest<A extends readonly unknown[], R>(sources: readonly [...ObservableInputTuple<A>], resultSelector: (...values: A) => R): Observable<R>;
 export declare function combineLatest<A extends readonly unknown[]>(sources: readonly [...ObservableInputTuple<A>], scheduler: SchedulerLike): Observable<A>;
 export declare function combineLatest<A extends readonly unknown[]>(...sources: [...ObservableInputTuple<A>]): Observable<A>;
-export declare function combineLatest<A extends readonly unknown[], R>(...args: [...ObservableInputTuple<A>, (...args: A) => R, SchedulerLike]): Observable<R>;
-export declare function combineLatest<A extends readonly unknown[], R>(...args: [...ObservableInputTuple<A>, (...args: A) => R]): Observable<R>;
-export declare function combineLatest<A extends readonly unknown[]>(...args: [...ObservableInputTuple<A>, SchedulerLike]): Observable<A>;
+export declare function combineLatest<A extends readonly unknown[], R>(...sourcesAndResultSelectorAndScheduler: [...ObservableInputTuple<A>, (...values: A) => R, SchedulerLike]): Observable<R>;
+export declare function combineLatest<A extends readonly unknown[], R>(...sourcesAndResultSelector: [...ObservableInputTuple<A>, (...values: A) => R]): Observable<R>;
+export declare function combineLatest<A extends readonly unknown[]>(...sourcesAndScheduler: [...ObservableInputTuple<A>, SchedulerLike]): Observable<A>;
 export declare function combineLatest(sourcesObject: {
     [K in any]: never;
 }): Observable<never>;
@@ -87,7 +86,6 @@ export declare class ConnectableObservable<T> extends Observable<T> {
     source: Observable<T>;
     protected subjectFactory: () => Subject<T>;
     constructor(source: Observable<T>, subjectFactory: () => Subject<T>);
-    protected _subscribe(subscriber: Subscriber<T>): Subscription;
     protected _teardown(): void;
     connect(): Subscription;
     protected getSubject(): Subject<T>;
@@ -123,8 +121,10 @@ export declare type FactoryOrValue<T> = T | (() => T);
 
 export declare type Falsy = null | undefined | false | 0 | -0 | 0n | '';
 
+export declare function firstValueFrom<T, D>(source: Observable<T>, config: FirstValueFromConfig<D>): Promise<T | D>;
 export declare function firstValueFrom<T>(source: Observable<T>): Promise<T>;
 
+export declare function forkJoin<T extends AnyCatcher>(arg: T): Observable<unknown>;
 export declare function forkJoin(scheduler: null | undefined): Observable<never>;
 export declare function forkJoin(sources: readonly []): Observable<never>;
 export declare function forkJoin<A extends readonly unknown[]>(sources: readonly [...ObservableInputTuple<A>]): Observable<A>;
@@ -141,10 +141,18 @@ export declare function forkJoin<T extends Record<string, ObservableInput<any>>>
 export declare function from<O extends ObservableInput<any>>(input: O): Observable<ObservedValueOf<O>>;
 export declare function from<O extends ObservableInput<any>>(input: O, scheduler: SchedulerLike): Observable<ObservedValueOf<O>>;
 
-export declare function fromEvent<T>(target: FromEventTarget<T>, eventName: string): Observable<T>;
-export declare function fromEvent<T>(target: FromEventTarget<T>, eventName: string, resultSelector?: (...args: any[]) => T): Observable<T>;
-export declare function fromEvent<T>(target: FromEventTarget<T>, eventName: string, options?: EventListenerOptions): Observable<T>;
-export declare function fromEvent<T>(target: FromEventTarget<T>, eventName: string, options: EventListenerOptions, resultSelector: (...args: any[]) => T): Observable<T>;
+export declare function fromEvent<T>(target: HasEventTargetAddRemove<T> | ArrayLike<HasEventTargetAddRemove<T>>, eventName: string): Observable<T>;
+export declare function fromEvent<T, R>(target: HasEventTargetAddRemove<T> | ArrayLike<HasEventTargetAddRemove<T>>, eventName: string, resultSelector: (event: T) => R): Observable<R>;
+export declare function fromEvent<T>(target: HasEventTargetAddRemove<T> | ArrayLike<HasEventTargetAddRemove<T>>, eventName: string, options: EventListenerOptions): Observable<T>;
+export declare function fromEvent<T, R>(target: HasEventTargetAddRemove<T> | ArrayLike<HasEventTargetAddRemove<T>>, eventName: string, options: EventListenerOptions, resultSelector: (event: T) => R): Observable<T>;
+export declare function fromEvent(target: NodeStyleEventEmitter | ArrayLike<NodeStyleEventEmitter>, eventName: string): Observable<unknown>;
+export declare function fromEvent<T>(target: NodeStyleEventEmitter | ArrayLike<NodeStyleEventEmitter>, eventName: string): Observable<T>;
+export declare function fromEvent<R>(target: NodeStyleEventEmitter | ArrayLike<NodeStyleEventEmitter>, eventName: string, resultSelector: (...args: any[]) => R): Observable<R>;
+export declare function fromEvent(target: NodeCompatibleEventEmitter | ArrayLike<NodeCompatibleEventEmitter>, eventName: string): Observable<unknown>;
+export declare function fromEvent<T>(target: NodeCompatibleEventEmitter | ArrayLike<NodeCompatibleEventEmitter>, eventName: string): Observable<T>;
+export declare function fromEvent<R>(target: NodeCompatibleEventEmitter | ArrayLike<NodeCompatibleEventEmitter>, eventName: string, resultSelector: (...args: any[]) => R): Observable<R>;
+export declare function fromEvent<T>(target: JQueryStyleEventEmitter<any, T> | ArrayLike<JQueryStyleEventEmitter<any, T>>, eventName: string): Observable<T>;
+export declare function fromEvent<T, R>(target: JQueryStyleEventEmitter<any, T> | ArrayLike<JQueryStyleEventEmitter<any, T>>, eventName: string, resultSelector: (value: T, ...args: any[]) => R): Observable<R>;
 
 export declare function fromEventPattern<T>(addHandler: (handler: NodeEventHandler) => any, removeHandler?: (handler: NodeEventHandler, signal?: any) => void): Observable<T>;
 export declare function fromEventPattern<T>(addHandler: (handler: NodeEventHandler) => any, removeHandler?: (handler: NodeEventHandler, signal?: any) => void, resultSelector?: (...args: any[]) => T): Observable<T>;
@@ -172,12 +180,13 @@ export declare function interval(period?: number, scheduler?: SchedulerLike): Ob
 
 export declare function isObservable(obj: any): obj is Observable<unknown>;
 
+export declare function lastValueFrom<T, D>(source: Observable<T>, config: LastValueFromConfig<D>): Promise<T | D>;
 export declare function lastValueFrom<T>(source: Observable<T>): Promise<T>;
 
-export declare function merge<A extends readonly unknown[]>(...args: [...ObservableInputTuple<A>]): Observable<A[number]>;
-export declare function merge<A extends readonly unknown[]>(...args: [...ObservableInputTuple<A>, number?]): Observable<A[number]>;
-export declare function merge<A extends readonly unknown[]>(...args: [...ObservableInputTuple<A>, SchedulerLike?]): Observable<A[number]>;
-export declare function merge<A extends readonly unknown[]>(...args: [...ObservableInputTuple<A>, number?, SchedulerLike?]): Observable<A[number]>;
+export declare function merge<A extends readonly unknown[]>(...sources: [...ObservableInputTuple<A>]): Observable<A[number]>;
+export declare function merge<A extends readonly unknown[]>(...sourcesAndConcurrency: [...ObservableInputTuple<A>, number?]): Observable<A[number]>;
+export declare function merge<A extends readonly unknown[]>(...sourcesAndScheduler: [...ObservableInputTuple<A>, SchedulerLike?]): Observable<A[number]>;
+export declare function merge<A extends readonly unknown[]>(...sourcesAndConcurrencyAndScheduler: [...ObservableInputTuple<A>, number?, SchedulerLike?]): Observable<A[number]>;
 
 export interface MonoTypeOperatorFunction<T> extends OperatorFunction<T, T> {
 }
@@ -238,17 +247,15 @@ export interface ObjectUnsubscribedError extends Error {
 
 export declare const ObjectUnsubscribedError: ObjectUnsubscribedErrorCtor;
 
-export declare const observable: string | SymbolConstructor["observable"];
+export declare const observable: string | symbol;
 
 export declare class Observable<T> implements Subscribable<T> {
-    protected operator: Operator<any, T> | undefined;
-    protected source: Observable<any> | undefined;
+    operator: Operator<any, T> | undefined;
+    source: Observable<any> | undefined;
     constructor(subscribe?: (this: Observable<T>, subscriber: Subscriber<T>) => TeardownLogic);
-    protected _subscribe(subscriber: Subscriber<any>): TeardownLogic;
-    protected _trySubscribe(sink: Subscriber<T>): TeardownLogic;
     forEach(next: (value: T) => void): Promise<void>;
     forEach(next: (value: T) => void, promiseCtor: PromiseConstructorLike): Promise<void>;
-    protected lift<R>(operator?: Operator<T, R>): Observable<R>;
+    lift<R>(operator?: Operator<T, R>): Observable<R>;
     pipe(): Observable<T>;
     pipe<A>(op1: OperatorFunction<T, A>): Observable<A>;
     pipe<A, B>(op1: OperatorFunction<T, A>, op2: OperatorFunction<A, B>): Observable<B>;
@@ -269,7 +276,7 @@ export declare class Observable<T> implements Subscribable<T> {
     static create: (...args: any[]) => any;
 }
 
-export declare type ObservableInput<T> = Observable<T> | InteropObservable<T> | AsyncIterable<T> | PromiseLike<T> | ArrayLike<T> | Iterable<T>;
+export declare type ObservableInput<T> = Observable<T> | InteropObservable<T> | AsyncIterable<T> | PromiseLike<T> | ArrayLike<T> | Iterable<T> | ReadableStreamLike<T>;
 
 export declare type ObservableInputTuple<T> = {
     [K in keyof T]: ObservableInput<T[K]>;
@@ -298,11 +305,11 @@ export interface Observer<T> {
 export declare function of(value: null): Observable<null>;
 export declare function of(value: undefined): Observable<undefined>;
 export declare function of(scheduler: SchedulerLike): Observable<never>;
-export declare function of<A extends readonly unknown[]>(...args: [...A, SchedulerLike]): Observable<ValueFromArray<A>>;
+export declare function of<A extends readonly unknown[]>(...valuesAndScheduler: [...A, SchedulerLike]): Observable<ValueFromArray<A>>;
 export declare function of(): Observable<never>;
 export declare function of<T>(): Observable<T>;
 export declare function of<T>(value: T): Observable<T>;
-export declare function of<A extends readonly unknown[]>(...args: A): Observable<ValueFromArray<A>>;
+export declare function of<A extends readonly unknown[]>(...values: A): Observable<ValueFromArray<A>>;
 
 export declare function onErrorResumeNext<A extends readonly unknown[]>(sources: [...ObservableInputTuple<A>]): Observable<A[number]>;
 export declare function onErrorResumeNext<A extends readonly unknown[]>(...sources: [...ObservableInputTuple<A>]): Observable<A[number]>;
@@ -321,6 +328,8 @@ export declare function pairs(n: number | bigint | boolean | ((...args: any[]) =
 
 export declare type PartialObserver<T> = NextObserver<T> | ErrorObserver<T> | CompletionObserver<T>;
 
+export declare function partition<T, U extends T, A>(source: ObservableInput<T>, predicate: (this: A, value: T, index: number) => value is U, thisArg: A): [Observable<U>, Observable<Exclude<T, U>>];
+export declare function partition<T, U extends T>(source: ObservableInput<T>, predicate: (value: T, index: number) => value is U): [Observable<U>, Observable<Exclude<T, U>>];
 export declare function partition<T, A>(source: ObservableInput<T>, predicate: (this: A, value: T, index: number) => boolean, thisArg: A): [Observable<T>, Observable<T>];
 export declare function partition<T>(source: ObservableInput<T>, predicate: (value: T, index: number) => boolean): [Observable<T>, Observable<T>];
 
@@ -334,7 +343,7 @@ export declare function pipe<T, A, B, C, D, E, F>(fn1: UnaryFunction<T, A>, fn2:
 export declare function pipe<T, A, B, C, D, E, F, G>(fn1: UnaryFunction<T, A>, fn2: UnaryFunction<A, B>, fn3: UnaryFunction<B, C>, fn4: UnaryFunction<C, D>, fn5: UnaryFunction<D, E>, fn6: UnaryFunction<E, F>, fn7: UnaryFunction<F, G>): UnaryFunction<T, G>;
 export declare function pipe<T, A, B, C, D, E, F, G, H>(fn1: UnaryFunction<T, A>, fn2: UnaryFunction<A, B>, fn3: UnaryFunction<B, C>, fn4: UnaryFunction<C, D>, fn5: UnaryFunction<D, E>, fn6: UnaryFunction<E, F>, fn7: UnaryFunction<F, G>, fn8: UnaryFunction<G, H>): UnaryFunction<T, H>;
 export declare function pipe<T, A, B, C, D, E, F, G, H, I>(fn1: UnaryFunction<T, A>, fn2: UnaryFunction<A, B>, fn3: UnaryFunction<B, C>, fn4: UnaryFunction<C, D>, fn5: UnaryFunction<D, E>, fn6: UnaryFunction<E, F>, fn7: UnaryFunction<F, G>, fn8: UnaryFunction<G, H>, fn9: UnaryFunction<H, I>): UnaryFunction<T, I>;
-export declare function pipe<T, A, B, C, D, E, F, G, H, I>(fn1: UnaryFunction<T, A>, fn2: UnaryFunction<A, B>, fn3: UnaryFunction<B, C>, fn4: UnaryFunction<C, D>, fn5: UnaryFunction<D, E>, fn6: UnaryFunction<E, F>, fn7: UnaryFunction<F, G>, fn8: UnaryFunction<G, H>, fn9: UnaryFunction<H, I>, ...fns: UnaryFunction<any, any>[]): UnaryFunction<T, {}>;
+export declare function pipe<T, A, B, C, D, E, F, G, H, I>(fn1: UnaryFunction<T, A>, fn2: UnaryFunction<A, B>, fn3: UnaryFunction<B, C>, fn4: UnaryFunction<C, D>, fn5: UnaryFunction<D, E>, fn6: UnaryFunction<E, F>, fn7: UnaryFunction<F, G>, fn8: UnaryFunction<G, H>, fn9: UnaryFunction<H, I>, ...fns: UnaryFunction<any, any>[]): UnaryFunction<T, unknown>;
 
 export declare const queue: QueueScheduler;
 
@@ -346,9 +355,12 @@ export declare function race<T extends readonly unknown[]>(...inputs: [...Observ
 export declare function range(start: number, count?: number): Observable<number>;
 export declare function range(start: number, count: number | undefined, scheduler: SchedulerLike): Observable<number>;
 
+export interface ReadableStreamLike<T> {
+    getReader(): ReadableStreamDefaultReaderLike<T>;
+}
+
 export declare class ReplaySubject<T> extends Subject<T> {
-    constructor(bufferSize?: number, windowTime?: number, timestampProvider?: TimestampProvider);
-    protected _subscribe(subscriber: Subscriber<T>): Subscription;
+    constructor(_bufferSize?: number, _windowTime?: number, _timestampProvider?: TimestampProvider);
     next(value: T): void;
 }
 
@@ -381,11 +393,6 @@ export declare class Subject<T> extends Observable<T> implements SubscriptionLik
     observers: Observer<T>[];
     thrownError: any;
     constructor();
-    protected _checkFinalizedStatuses(subscriber: Subscriber<any>): void;
-    protected _innerSubscribe(subscriber: Subscriber<any>): Subscription;
-    protected _subscribe(subscriber: Subscriber<T>): Subscription;
-    protected _throwIfClosed(): void;
-    protected _trySubscribe(subscriber: Subscriber<T>): TeardownLogic;
     asObservable(): Observable<T>;
     complete(): void;
     error(err: any): void;

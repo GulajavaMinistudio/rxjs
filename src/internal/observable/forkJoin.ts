@@ -6,13 +6,27 @@ import { popResultSelector } from '../util/args';
 import { OperatorSubscriber } from '../operators/OperatorSubscriber';
 import { mapOneOrManyArgs } from '../util/mapOneOrManyArgs';
 import { createObject } from '../util/createObject';
+import { AnyCatcher } from '../AnyCatcher';
 
+// forkJoin(any)
+// We put this first because we need to catch cases where the user has supplied
+// _exactly `any`_ as the argument. Since `any` literally matches _anything_,
+// we don't want it to randomly hit one of the other type signatures below,
+// as we have no idea at build-time what type we should be returning when given an any.
+
+/**
+ * You have passed `any` here, we can't figure out if it is
+ * an array or an object, so you're getting `unknown`. Use better types.
+ * @param arg Something typed as `any`
+ */
+export function forkJoin<T extends AnyCatcher>(arg: T): Observable<unknown>;
+
+// forkJoin(null | undefined)
 export function forkJoin(scheduler: null | undefined): Observable<never>;
 
 // forkJoin([a, b, c])
 export function forkJoin(sources: readonly []): Observable<never>;
 export function forkJoin<A extends readonly unknown[]>(sources: readonly [...ObservableInputTuple<A>]): Observable<A>;
-/** @deprecated resultSelector is deprecated, pipe to map instead */
 export function forkJoin<A extends readonly unknown[], R>(
   sources: readonly [...ObservableInputTuple<A>],
   resultSelector: (...values: A) => R
@@ -21,7 +35,7 @@ export function forkJoin<A extends readonly unknown[], R>(
 // forkJoin(a, b, c)
 /** @deprecated Use the version that takes an array of Observables instead, Details https://rxjs.dev/deprecations/array-argument */
 export function forkJoin<A extends readonly unknown[]>(...sources: [...ObservableInputTuple<A>]): Observable<A>;
-/** @deprecated resultSelector is deprecated, pipe to map instead */
+/** @deprecated Use the version that takes an array of Observables instead, Details https://rxjs.dev/deprecations/array-argument */
 export function forkJoin<A extends readonly unknown[], R>(
   ...sourcesAndResultSelector: [...ObservableInputTuple<A>, (...values: A) => R]
 ): Observable<R>;
@@ -152,7 +166,6 @@ export function forkJoin(...args: any[]): Observable<any> {
             }
             values[sourceIndex] = value;
           },
-          undefined,
           () => {
             if (!--remainingCompletions || !hasValue) {
               if (!remainingEmissions) {

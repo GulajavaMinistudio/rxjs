@@ -1,3 +1,41 @@
+# [7.0.0-rc.1](https://github.com/reactivex/rxjs/compare/7.0.0-rc.0...7.0.0-rc.1) (2021-04-19)
+
+### Bug Fixes
+
+- **TypeScript:** Add typesVersions definition to package.json in order to help VS Code find automatic imports. ([#6067](https://github.com/reactivex/rxjs/issues/6067)) ([659a623](https://github.com/reactivex/rxjs/commit/659a623c94bd6b210e9beb6bb6061be540b05538))
+
+# [7.0.0-rc.0](https://github.com/reactivex/rxjs/compare/7.0.0-beta.15...7.0.0-rc.0) (2021-04-19)
+
+### Bug Fixes
+
+- **symbol:** revert unique symbol in [#5874](https://github.com/reactivex/rxjs/issues/5874) ([#6224](https://github.com/reactivex/rxjs/issues/6224)) ([3c49429](https://github.com/reactivex/rxjs/commit/3c49429fadc31ebaddd143d4412907edc50e32be)), closes [#5919](https://github.com/reactivex/rxjs/issues/5919) [#6178](https://github.com/reactivex/rxjs/issues/6178) [#6175](https://github.com/reactivex/rxjs/issues/6175)
+- forkJoin/combineLatest return Observable<unknown> if passed any ([#6227](https://github.com/reactivex/rxjs/issues/6227)) ([ce0a2fa](https://github.com/reactivex/rxjs/commit/ce0a2fa975e7c08de2bbf893010f2c25c090b1ca)), closes [#6226](https://github.com/reactivex/rxjs/issues/6226)
+- **fromEvent:** match targets properly; fix result selector type ([#6208](https://github.com/reactivex/rxjs/issues/6208)) ([8412c73](https://github.com/reactivex/rxjs/commit/8412c739bb47cc45ec3f38327115301b4fcc0118))
+- **merge:** single array is not an array of sources ([#6211](https://github.com/reactivex/rxjs/issues/6211)) ([4e900dc](https://github.com/reactivex/rxjs/commit/4e900dc745b5fbd7659b104c49fb0fce4ae84707))
+- **pipe:** Ensure that `unknown` is infered for 9+ arguments. ([#6212](https://github.com/reactivex/rxjs/issues/6212)) ([6fa819b](https://github.com/reactivex/rxjs/commit/6fa819beb91ba99dadd6262d6c13f7ddfd9470c5))
+
+### Features
+
+- add (optional) defaultValue configuration to firstValueFrom and lastValueFrom ([#6204](https://github.com/reactivex/rxjs/issues/6204)) ([df51b04](https://github.com/reactivex/rxjs/commit/df51b04d7ec68a72b3a4b0d69c3bb29264c72611))
+
+# [7.0.0-beta.15](https://github.com/reactivex/rxjs/compare/7.0.0-beta.14...7.0.0-beta.15) (2021-03-31)
+
+### Bug Fixes
+
+- **esm:** duplicate directory in export path ([#6194](https://github.com/reactivex/rxjs/issues/6194)) ([aa41462](https://github.com/reactivex/rxjs/commit/aa4146288ec6542754f41ffd260fa4d6936a4d22))
+
+# [7.0.0-beta.14](https://github.com/reactivex/rxjs/compare/7.0.0-beta.13...7.0.0-beta.14) (2021-03-30)
+
+### Bug Fixes
+
+- **share:** No longer throws errors for reentrant observables ([#6151](https://github.com/reactivex/rxjs/issues/6151)) ([fc728cd](https://github.com/reactivex/rxjs/commit/fc728cdf2f395620cca347602e66f3d173c057b5)), closes [#6144](https://github.com/reactivex/rxjs/issues/6144)
+
+### Features
+
+- **ajax:** Now allows configuration of query string parameters, via a `params` option in the request configuration ([#6174](https://github.com/reactivex/rxjs/issues/6174)) ([980f4d4](https://github.com/reactivex/rxjs/commit/980f4d4bb6a3bc1513a4335ed124f4d11b93d251))
+- **esm:** Added exports within package.json to enable scoped package loading. ([#6192](https://github.com/reactivex/rxjs/issues/6192)) ([33a9f06](https://github.com/reactivex/rxjs/commit/33a9f06f2c59c8aef3bb583bdb7d61d08ab597a0)), closes [sveltejs/kit#612](https://github.com/sveltejs/kit/issues/612) [nodejs/node#27408](https://github.com/nodejs/node/issues/27408)
+- **ReadableStreams:** RxJS now supports conversions for ReadableStreams e.g. `from(readableStream)`. ([#6163](https://github.com/reactivex/rxjs/issues/6163)) ([19d6502](https://github.com/reactivex/rxjs/commit/19d650223cf0e1964e893baca19f264154422a7d))
+
 # [7.0.0-beta.13](https://github.com/reactivex/rxjs/compare/7.0.0-beta.12...7.0.0-beta.13) (2021-03-15)
 
 ### Bug Fixes

@@ -1,9 +1,17 @@
 import { PartialObserver } from '../types';
 
 /**
+ * Valid Ajax direction types. Prefixes the event `type` in the
+ * {@link AjaxResponse} object with "upload_" for events related
+ * to uploading and "download_" for events related to downloading.
+ */
+export type AjaxDirection = 'upload' | 'download';
+
+/**
  * The object containing values RxJS used to make the HTTP request.
  *
- * This is provided in {@link AjaxError} instances and
+ * This is provided in {@link AjaxError} instances as the `request`
+ * object.
  */
 export interface AjaxRequest {
   /**
@@ -74,7 +82,7 @@ export interface AjaxConfig {
   /**
    * The body of the HTTP request to send.
    *
-   * This is serialized, by default, based off of the valud of the `"content-type"` header.
+   * This is serialized, by default, based off of the value of the `"content-type"` header.
    * For example, if the `"content-type"` is `"application/json"`, the body will be serialized
    * as JSON. If the `"content-type"` is `"application/x-www-form-urlencoded"`, whatever object passed
    * to the body will be serialized as URL, using key-value pairs based off of the keys and values of the object.
@@ -179,8 +187,8 @@ export interface AjaxConfig {
   progressSubscriber?: PartialObserver<ProgressEvent>;
 
   /**
-   * If `true`, will emit all download progress and load complete events as {@link AjaxProgressEvents}
-   * from the observable. The final download event will also be emitted as a {@link AjaxDownloadCompleteEvent}
+   * If `true`, will emit all download progress and load complete events as {@link AjaxResponse}
+   * from the observable. The final download event will also be emitted as a {@link AjaxResponse}.
    *
    * If both this and {@link includeUploadProgress} are `false`, then only the {@link AjaxResponse} will
    * be emitted from the resulting observable.
@@ -188,11 +196,28 @@ export interface AjaxConfig {
   includeDownloadProgress?: boolean;
 
   /**
-   * If `true`, will emit all upload progress and load complete events as {@link AjaxUploadProgressEvents}
-   * from the observable. The final download event will also be emitted as a {@link AjaxDownloadCompleteEvent}
+   * If `true`, will emit all upload progress and load complete events as {@link AjaxResponse}
+   * from the observable. The final download event will also be emitted as a {@link AjaxResponse}.
    *
    * If both this and {@link includeDownloadProgress} are `false`, then only the {@link AjaxResponse} will
    * be emitted from the resulting observable.
    */
   includeUploadProgress?: boolean;
+
+  /**
+   * Query string parameters to add to the URL in the request.
+   * <em>This will require a polyfill for `URL` and `URLSearchParams` in Internet Explorer!</em>
+   *
+   * Accepts either a query string, a `URLSearchParams` object, a dictionary of key/value pairs, or an
+   * array of key/value entry tuples. (Essentially, it takes anything that `new URLSearchParams` would normally take).
+   *
+   * If, for some reason you have a query string in the `url` argument, this will append to the query string in the url,
+   * but it will also overwrite the value of any keys that are an exact match. In other words, a url of `/test?a=1&b=2`,
+   * with queryParams of `{ b: 5, c: 6 }` will result in a url of roughly `/test?a=1&b=5&c=6`.
+   */
+  queryParams?:
+    | string
+    | URLSearchParams
+    | Record<string, string | number | boolean | string[] | number[] | boolean[]>
+    | [string, string | number | boolean | string[] | number[] | boolean[]][];
 }
